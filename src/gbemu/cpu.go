@@ -1,22 +1,24 @@
-package cpu
+package main
 
-type 8BitRegister byte
-type 16BitRegister uint16
+type EightBitRegister byte
+type SixteenBitRegister uint16
 
-type GbMachineState struct {
-	ROM  []uint8
-	RAM  []uint8
-	VRAM []uint8
+type CPU struct {
 
-	PC   16BitRegister // Should be initialized to 0x100 to start execution
-	SP	 16BitRegister // Should be initialized to 0xFFFE on startup (grows downward in RAM)
+	PC   SixteenBitRegister // Should be initialized to 0x100 to start execution
+	SP	 SixteenBitRegister // Should be initialized to 0xFFFE on startup (grows downward in RAM)
 
-	RegA 8BitRegister
-	RegB 8BitRegister
-	RegC 8BitRegister
-	RegD 8BitRegister
-	RegE 8BitRegister
-	RegF 8BitRegister
-	RegH 8BitRegister
-	RegL 8BitRegister
+	RegA EightBitRegister
+	RegB EightBitRegister
+	RegC EightBitRegister
+	RegD EightBitRegister
+	RegE EightBitRegister
+	RegF EightBitRegister
+	RegH EightBitRegister
+	RegL EightBitRegister
+}
+
+func (c *CPU) reset() {
+	c.PC = 0x100
+	c.SP = 0xFFFE
 }

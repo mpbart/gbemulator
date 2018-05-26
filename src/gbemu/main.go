@@ -9,7 +9,11 @@ const (
 )
 
 func main() {
-	main_loop()
+	m := MMU{}
+	cpu := CPU{}
+
+	m.reset()
+	cpu.reset()
 }
 
 func main_loop() {
