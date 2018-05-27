@@ -2,6 +2,7 @@ package main
 
 import (
 	"time"
+	"github.com/go-gl/gl/v4.6-core/gl"
 )
 
 const (
@@ -14,6 +15,12 @@ func main() {
 
 	m.reset()
 	cpu.reset()
+
+	if err := gl.Init(); err != nil {
+		return
+	}
+
+	main_loop()
 }
 
 func main_loop() {
