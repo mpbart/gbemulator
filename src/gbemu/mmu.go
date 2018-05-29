@@ -36,6 +36,10 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0x0000 && address <= 0x7FFF:
 		return m.ROM[address]
 	case address >= 0x8000 && address <= 0x9FFF:
+		if !m.CanAccessVRAM() {
+			fmt.Println("Accessing VRAM at an illegal time...")
+			return 0
+		}
 		return m.VRAM[address-0x8000]
 	case address >= 0xA000 && address <= 0xBFFF:
 		return m.SwitchableRAM[address-0xA000]
@@ -44,6 +48,10 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0xE000 && address <= 0xFDFF:
 		return m.EchoRAM[address-0xE000]
 	case address >= 0xFE00 && address <= 0xFE9F:
+		if !m.CanAccessOAM() {
+			fmt.Println("Accessing OAM at an illegal time...")
+			return 0
+		}
 		return m.OAM[address-0xFE00]
 	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
@@ -63,6 +71,10 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address >= 0x0000 && address <= 0x7FFF:
 		m.ROM[address] = value
 	case address >= 0x8000 && address <= 0x9FFF:
+		if !m.CanAccessVRAM() {
+			fmt.Println("Accessing VRAM at an illegal time...")
+			return
+		}
 		m.VRAM[address-0x8000] = value
 	case address >= 0xA000 && address <= 0xBFFF:
 		m.SwitchableRAM[address-0xA000] = value
@@ -71,6 +83,10 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address >= 0xE000 && address <= 0xFDFF:
 		m.EchoRAM[address-0xE000] = value
 	case address >= 0xFE00 && address <= 0xFE9F:
+		if !m.CanAccessOAM() {
+			fmt.Println("Accessing OAM at an illegal time...")
+			return
+		}
 		m.OAM[address-0xFE00] = value
 	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
@@ -82,4 +98,18 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	default:
 		fmt.Println("Error ocurred trying to read memory address %v", address)
 	}
+}
+
+func (m *mmu) LCDStatusMode() uint8 {
+	return m.ReadAt(0xFF41) & 0x03
+}
+
+func (m *mmu) CanAccessOAM() bool {
+	mode := m.LCDStatusMode()
+	return (mode == 0 || mode == 1)
+}
+
+func (m *mmu) CanAccessVRAM() bool {
+	mode := m.LCDStatusMode()
+	return mode != 3
 }
