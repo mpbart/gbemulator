@@ -38,7 +38,7 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0x8000 && address <= 0x9FFF:
 		if !m.CanAccessVRAM() {
 			fmt.Println("Accessing VRAM at an illegal time...")
-			return 0
+			return 0xFF
 		}
 		return m.VRAM[address-0x8000]
 	case address >= 0xA000 && address <= 0xBFFF:
@@ -50,7 +50,7 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0xFE00 && address <= 0xFE9F:
 		if !m.CanAccessOAM() {
 			fmt.Println("Accessing OAM at an illegal time...")
-			return 0
+			return 0xFF
 		}
 		return m.OAM[address-0xFE00]
 	// TODO: Check for accessing unused memory locations and panic?
