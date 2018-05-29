@@ -11,17 +11,18 @@ const (
 
 func initialize() {
 	runtime.LockOSThread()
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 }
 
 func main() {
 	go CreateComponents()
-	CreateDisplay()
+	CreateDisplay() // This needs to happen on the main OS thread for the UI library to function correctly
 }
 
 func CreateComponents() {
-	m := MMU{}
-	cpu := CPU{}
+	m := CreateMMU()
+	cpu := CreateCPU(m)
 
-	m.reset()
-	cpu.reset()
+	m.Reset()
+	cpu.Reset()
 }
