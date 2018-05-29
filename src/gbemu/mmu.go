@@ -11,16 +11,16 @@ type MMU interface {
 }
 
 type mmu struct {
-	ROM				[32768]uint8// 0x0000 - 0x7FFF
-	VRAM			[8192]uint8 // 0x8000 - 0x9FFF
-	SwitchableRAM	[8192]uint8 // 0xA000 - 0xBFFF
-	InternalRAM		[8192]uint8 // 0xC000 - 0xDFFF
-	EchoRAM			[8192]uint8 // 0xE000 - 0xFDFF	
-	OAM				[160]uint8	// 0xFE00 - 0xFE9F
-	Unused			[95]uint8   // 0xFEA0 - 0xFEFF
-	IoPorts			[128]uint8  // 0xFF00 - 0xFF7F
-	HRAM			[127]uint8  // 0xFF80 - 0xFFFE
-	InterruptEnable uint8       // 0xFFFF
+	ROM             [32768]uint8 // 0x0000 - 0x7FFF
+	VRAM            [8192]uint8  // 0x8000 - 0x9FFF
+	SwitchableRAM   [8192]uint8  // 0xA000 - 0xBFFF
+	InternalRAM     [8192]uint8  // 0xC000 - 0xDFFF
+	EchoRAM         [8192]uint8  // 0xE000 - 0xFDFF
+	OAM             [160]uint8   // 0xFE00 - 0xFE9F
+	Unused          [95]uint8    // 0xFEA0 - 0xFEFF
+	IoPorts         [128]uint8   // 0xFF00 - 0xFF7F
+	HRAM            [127]uint8   // 0xFF80 - 0xFFFE
+	InterruptEnable uint8        // 0xFFFF
 }
 
 func CreateMMU() MMU {
@@ -36,20 +36,20 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0x0000 && address <= 0x7FFF:
 		return m.ROM[address]
 	case address >= 0x8000 && address <= 0x9FFF:
-		return m.VRAM[address - 0x8000]
+		return m.VRAM[address-0x8000]
 	case address >= 0xA000 && address <= 0xBFFF:
-		return m.SwitchableRAM[address - 0xA000]
+		return m.SwitchableRAM[address-0xA000]
 	case address >= 0xC000 && address <= 0xDFFF:
-		return m.InternalRAM[address - 0xC000]
+		return m.InternalRAM[address-0xC000]
 	case address >= 0xE000 && address <= 0xFDFF:
-		return m.EchoRAM[address - 0xE000]
+		return m.EchoRAM[address-0xE000]
 	case address >= 0xFE00 && address <= 0xFE9F:
-		return m.OAM[address - 0xFE00]
+		return m.OAM[address-0xFE00]
 	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
-		return m.IoPorts[address - 0xFF00]
+		return m.IoPorts[address-0xFF00]
 	case address >= 0xFF80 && address <= 0xFFFE:
-		return m.HRAM[address - 0xFF80]
+		return m.HRAM[address-0xFF80]
 	case address == 0xFFFF:
 		return m.InterruptEnable
 	default:
@@ -63,20 +63,20 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address >= 0x0000 && address <= 0x7FFF:
 		m.ROM[address] = value
 	case address >= 0x8000 && address <= 0x9FFF:
-		m.VRAM[address - 0x8000] = value
+		m.VRAM[address-0x8000] = value
 	case address >= 0xA000 && address <= 0xBFFF:
-		m.SwitchableRAM[address - 0xA000] = value
+		m.SwitchableRAM[address-0xA000] = value
 	case address >= 0xC000 && address <= 0xDFFF:
-		m.InternalRAM[address - 0xC000] = value
+		m.InternalRAM[address-0xC000] = value
 	case address >= 0xE000 && address <= 0xFDFF:
-		m.EchoRAM[address - 0xE000] = value
+		m.EchoRAM[address-0xE000] = value
 	case address >= 0xFE00 && address <= 0xFE9F:
-		m.OAM[address - 0xFE00] = value
+		m.OAM[address-0xFE00] = value
 	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
-		m.IoPorts[address - 0xFF00] = value
+		m.IoPorts[address-0xFF00] = value
 	case address >= 0xFF80 && address <= 0xFFFE:
-		m.HRAM[address - 0xFF80] = value
+		m.HRAM[address-0xFF80] = value
 	case address == 0xFFFF:
 		m.InterruptEnable = value
 	default:

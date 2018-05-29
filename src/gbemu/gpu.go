@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	SCREEN_WIDTH int = 160
+	SCREEN_WIDTH  int = 160
 	SCREEN_HEIGHT int = 144
 )
 
@@ -33,9 +33,9 @@ func CreateDisplay() {
 	}
 
 	window, err := glfw.CreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GB Emulator", nil, nil)
-    if err != nil {
-        fmt.Println(err)
-    }
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	window.MakeContextCurrent()
 
@@ -56,18 +56,18 @@ func CreateDisplay() {
 func (d *display) Render() {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.Disable(gl.DEPTH_TEST)
-    gl.PointSize(1.0)
-    gl.Begin(gl.POINTS)
-    for y := 0; y < SCREEN_HEIGHT; y++ {
-        for x := 0; x < SCREEN_WIDTH; x++ {
-			if x % 4 == 0 {
+	gl.PointSize(1.0)
+	gl.Begin(gl.POINTS)
+	for y := 0; y < SCREEN_HEIGHT; y++ {
+		for x := 0; x < SCREEN_WIDTH; x++ {
+			if x%4 == 0 {
 				gl.Color3ub(30, 20, 10)
 				gl.Vertex2i(int32(x), int32(y))
 			}
-        }
-    }
-    gl.End()
-    d.window.SwapBuffers()
+		}
+	}
+	gl.End()
+	d.window.SwapBuffers()
 }
 
 func (d *display) Start() {
@@ -77,4 +77,3 @@ func (d *display) Start() {
 		glfw.PollEvents()
 	}
 }
-

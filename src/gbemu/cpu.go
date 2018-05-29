@@ -8,10 +8,10 @@ type CPU interface {
 }
 
 type cpu struct {
-	mmu  MMU
+	mmu MMU
 
-	PC   SixteenBitRegister // Should be initialized to 0x100 to start execution
-	SP	 SixteenBitRegister // Should be initialized to 0xFFFE on startup (grows downward in RAM)
+	PC SixteenBitRegister // Should be initialized to 0x100 to start execution
+	SP SixteenBitRegister // Should be initialized to 0xFFFE on startup (grows downward in RAM)
 
 	RegA EightBitRegister // Accumulator
 	RegB EightBitRegister
