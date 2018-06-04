@@ -113,3 +113,11 @@ func (r *registers) validRegisterPair(reg1, reg2 Register) bool {
 	}
 	return false
 }
+
+func (r *registers) GetValue() byte {
+	return 0
+}
+
+func (r *registers) GetTwoByteValue() uint16 {
+	return 0
+}

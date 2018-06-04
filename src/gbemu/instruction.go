@@ -1,21 +1,32 @@
 package main
 
-type Command int
+type Loader interface {
+	GetValue() byte
+	GetTwoByteValue() uint16
+}
 
-type Instructions struct {
+type Instruction interface {
+	Execute()
+}
+
+type loadInstruction struct {
 	opcode byte
 	cycles int
-	command Command
+	source Loader
+	dest   Loader
 }
 
 // TODO: Design interface so that different types of commands can be returned as Instruction type
-func CreateInstructions() []Instructions {
-	return []Instructions{
-		Instruction{0x06, 8, 0},
-		Instruction{0x0E, 8, 0},
-		Instruction{0x16, 8, 0},
-		Instruction{0x1E, 8, 0},
-		Instruction{0x26, 8, 0},
-		Instruction{0x2E, 8, 0},
+func CreateInstructions() []Instruction {
+	return []Instruction{
+	//&loadInstruction{0x06, 8, 0, 0},
+	//&loadInstruction{0x0E, 8, 0},
+	//&loadInstruction{0x16, 8, 0},
+	//&loadInstruction{0x1E, 8, 0},
+	//&loadInstruction{0x26, 8, 0},
+	//&loadInstruction{0x2E, 8, 0},
 	}
+}
+
+func (i *loadInstruction) Execute() {
 }
