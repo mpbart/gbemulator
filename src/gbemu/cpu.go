@@ -1,7 +1,10 @@
 package main
 
+import "fmt"
+
 type CPU interface {
 	Reset()
+	Run(map[byte]Instruction)
 }
 
 type cpu struct {
@@ -56,4 +59,30 @@ func (cpu *cpu) Reset() {
 	cpu.mmu.WriteByte(0xFF4B, 0x00)
 	cpu.mmu.WriteByte(0xFF50, 0x00)
 	cpu.mmu.WriteByte(0xFFFF, 0x00)
+}
+
+func (c *cpu) IncrementSP() {
+	c.registers.WriteSP(c.registers.ReadSP() + 0x02)
+}
+
+func (c *cpu) DecrementSP() {
+	c.registers.WriteSP(c.registers.ReadSP() - 0x02)
+}
+
+func (c *cpu) Run(instructions map[byte]Instruction) {
+	opcode := c.getNextInstruction()
+	instruction, found := instructions[opcode]
+
+	if !found {
+		fmt.Printf("ERROR: Opcode %v not found\n", opcode)
+	}
+
+	fmt.Println(instruction)
+	return
+	// Set PC to next instruction
+	// either PC + 1 + parameters OR jump to new address OR pop address from stack and jump there
+}
+
+func (c *cpu) getNextInstruction() byte {
+	return c.mmu.ReadAt(c.registers.ReadPC())
 }

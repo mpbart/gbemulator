@@ -28,7 +28,6 @@ func CreateMMU() MMU {
 }
 
 func (m *mmu) Reset() {
-	fmt.Println(m.ReadAt(0xFFFF))
 }
 
 func (m *mmu) ReadAt(address uint16) uint8 {

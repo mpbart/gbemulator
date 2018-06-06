@@ -9,17 +9,23 @@ type Instruction interface {
 	Execute()
 }
 
-type loadInstruction struct {
-	opcode byte
+type loadImmediateInstruction struct {
 	cycles int
-	source Loader
-	dest   Loader
+	paramBytes int
+	dest   Register
+	source byte
+}
+
+type noopInstruction struct {
+	cycles int
+	paramBytes int
 }
 
 // TODO: Design interface so that different types of commands can be returned as Instruction type
-func CreateInstructions() []Instruction {
-	return []Instruction{
-	//&loadInstruction{0x06, 8, 0, 0},
+func CreateInstructions() map[byte]Instruction {
+	return map[byte]Instruction{
+	0x00: &noopInstruction{1, 0},
+	//0x06: &loadImmediateInstruction{8, 1, b, 0},
 	//&loadInstruction{0x0E, 8, 0},
 	//&loadInstruction{0x16, 8, 0},
 	//&loadInstruction{0x1E, 8, 0},
@@ -28,5 +34,9 @@ func CreateInstructions() []Instruction {
 	}
 }
 
-func (i *loadInstruction) Execute() {
+func (i *loadImmediateInstruction) Execute() {
+	//registers.WriteRegister(i.dest, i.source)
+}
+
+func (n *noopInstruction) Execute() {
 }

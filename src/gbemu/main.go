@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
 	"time"
+	"io/ioutil"
 )
 
 const (
@@ -25,4 +27,25 @@ func CreateComponents() {
 
 	m.Reset()
 	cpu.Reset()
+	instructions := CreateInstructions()
+	if err := loadROM(m); err != nil {
+		fmt.Println(err)
+		return
+	}
+	cpu.Run(instructions)
+}
+
+func loadROM(m MMU) error {
+	// Hardcode ROM name for now, maybe add in some command line arguments to parse this later
+	filename := "bgbtest.rom"
+	f, err := ioutil.ReadFile(filename)
+
+	if err != nil {
+		return fmt.Errorf("ERROR opening ROM: %s", err)
+	}
+
+	for i := 0; i < len(f); i++ {
+		m.WriteByte(uint16(i), f[i])
+	}
+	return nil
 }
