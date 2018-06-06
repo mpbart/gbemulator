@@ -79,6 +79,8 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 		m.SwitchableRAM[address-0xA000] = value
 	case address >= 0xC000 && address <= 0xDFFF:
 		m.InternalRAM[address-0xC000] = value
+		// Echo RAM contains the same values as internal RAM
+		m.EchoRAM[address-0xE000] = value
 	case address >= 0xE000 && address <= 0xFDFF:
 		m.EchoRAM[address-0xE000] = value
 	case address >= 0xFE00 && address <= 0xFE9F:
