@@ -4,18 +4,22 @@ import "fmt"
 
 type CPU interface {
 	Reset()
-	Run(map[byte]Instruction)
+	Run()
 }
 
 type cpu struct {
-	mmu       MMU
-	registers Registers
+	mmu          MMU
+	registers    Registers
+	instructions map[byte]Instruction
 }
 
 func CreateCPU(mmu MMU) CPU {
+	registers := CreateRegisters()
+
 	return &cpu{
-		mmu:       mmu,
-		registers: CreateRegisters(),
+		mmu:          mmu,
+		registers:    registers,
+		instructions: CreateInstructions(registers, mmu),
 	}
 }
 
@@ -69,13 +73,22 @@ func (c *cpu) DecrementSP() {
 	c.registers.WriteSP(c.registers.ReadSP() - 0x02)
 }
 
-func (c *cpu) Run(instructions map[byte]Instruction) {
+func (c *cpu) Run() {
 	opcode := c.getNextInstruction()
-	instruction, found := instructions[opcode]
+	instruction, found := c.instructions[opcode]
 
 	if !found {
 		fmt.Printf("ERROR: Opcode %v not found\n", opcode)
 	}
+
+	paramBytes := instruction.GetNumParameterBytes()
+	params := make(Parameters, paramBytes)
+	if paramBytes > 0 {
+		for i := 1; i <= paramBytes; i++ {
+			params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i))
+		}
+	}
+	instruction.Execute(params)
 
 	fmt.Println(instruction)
 	return

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"runtime"
 	"time"
-	"io/ioutil"
 )
 
 const (
@@ -27,12 +27,11 @@ func CreateComponents() {
 
 	m.Reset()
 	cpu.Reset()
-	instructions := CreateInstructions()
 	if err := loadROM(m); err != nil {
 		fmt.Println(err)
 		return
 	}
-	cpu.Run(instructions)
+	cpu.Run()
 }
 
 func loadROM(m MMU) error {
