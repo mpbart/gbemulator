@@ -21,7 +21,7 @@ type Display interface {
 	Start()
 }
 
-func CreateDisplay() {
+func CreateDisplay(exitChannel chan bool) {
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println(err)
@@ -50,7 +50,7 @@ func CreateDisplay() {
 	window.SetPos(0, 0)
 
 	d := display{window}
-	d.Start()
+	d.Start(exitChannel)
 }
 
 func (d *display) Render() {
@@ -70,10 +70,18 @@ func (d *display) Render() {
 	d.window.SwapBuffers()
 }
 
-func (d *display) Start() {
-	for !d.window.ShouldClose() {
-		d.Render()
-		d.window.SwapBuffers()
-		glfw.PollEvents()
+func (d *display) Start(exitChannel chan bool) {
+	for {
+		select {
+		case <-exitChannel:
+			return
+		default:
+			if d.window.ShouldClose() {
+				return
+			}
+			d.Render()
+			d.window.SwapBuffers()
+			glfw.PollEvents()
+		}
 	}
 }

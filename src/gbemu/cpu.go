@@ -4,7 +4,7 @@ import "fmt"
 
 type CPU interface {
 	Reset()
-	Run()
+	Run(chan bool)
 }
 
 type cpu struct {
@@ -73,27 +73,35 @@ func (c *cpu) DecrementSP() {
 	c.registers.WriteSP(c.registers.ReadSP() - 0x02)
 }
 
-func (c *cpu) Run() {
-	opcode := c.getNextInstruction()
-	instruction, found := c.instructions[opcode]
+func (c *cpu) IncrementPC(offset int) {
+	c.registers.WritePC(c.registers.ReadPC() + uint16(offset))
+}
 
-	if !found {
-		fmt.Printf("ERROR: Opcode %v not found\n", opcode)
-	}
+func (c *cpu) Run(exitChannel chan bool) {
+	for {
+		opcode := c.getNextInstruction()
+		instruction, found := c.instructions[opcode]
 
-	paramBytes := instruction.GetNumParameterBytes()
-	params := make(Parameters, paramBytes)
-	if paramBytes > 0 {
-		for i := 1; i <= paramBytes; i++ {
-			params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i))
+		if !found {
+			fmt.Printf("ERROR: Opcode %x not found\n", opcode)
+			exitChannel <- true
+			break
 		}
-	}
-	instruction.Execute(params)
 
-	fmt.Println(instruction)
-	return
-	// Set PC to next instruction
-	// either PC + 1 + parameters OR jump to new address OR pop address from stack and jump there
+		paramBytes := instruction.GetNumParameterBytes()
+		params := make(Parameters, paramBytes)
+		if paramBytes > 0 {
+			for i := 1; i <= paramBytes; i++ {
+				params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i))
+			}
+		}
+		instruction.Execute(params)
+
+		fmt.Println(opcode)
+		c.IncrementPC(paramBytes + 1)
+		// Set PC to next instruction
+		// either PC + 1 + parameters OR jump to new address OR pop address from stack and jump there
+	}
 }
 
 func (c *cpu) getNextInstruction() byte {

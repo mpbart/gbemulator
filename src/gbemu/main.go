@@ -17,11 +17,12 @@ func initialize() {
 }
 
 func main() {
-	go CreateComponents()
-	CreateDisplay() // This needs to happen on the main OS thread for the UI library to function correctly
+	exitChannel := make(chan bool)
+	go CreateComponents(exitChannel)
+	CreateDisplay(exitChannel) // This needs to happen on the main OS thread for the UI library to function correctly
 }
 
-func CreateComponents() {
+func CreateComponents(exitChannel chan bool) {
 	m := CreateMMU()
 	cpu := CreateCPU(m)
 
@@ -31,7 +32,7 @@ func CreateComponents() {
 		fmt.Println(err)
 		return
 	}
-	cpu.Run()
+	cpu.Run(exitChannel)
 }
 
 func loadROM(m MMU) error {
