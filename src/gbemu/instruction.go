@@ -52,6 +52,76 @@ type noopInstruction struct {
 	paramBytes int
 }
 
+type addInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type addCarryInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type subInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type subCarryInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type andInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type orInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type xorInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type cpInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type incInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type decInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xEA, 0x3A, 0x32, 0x2A, 0x22, 0xE0, 0xF0
 	// 0xF8, 0xF9, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1
@@ -145,6 +215,94 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x21: &loadTwoByteImmediateInstruction{12, 2, h, l, regs},
 		// TODO: This is really hacky, fix it
 		// 0x31: &loadTwoByteImmediateInstruction{12, 2, sp, sp, regs},
+
+		0x87: &addInstruction{4, 0, a, regs},
+		0x80: &addInstruction{4, 0, b, regs},
+		0x81: &addInstruction{4, 0, c, regs},
+		0x82: &addInstruction{4, 0, d, regs},
+		0x83: &addInstruction{4, 0, e, regs},
+		0x84: &addInstruction{4, 0, h, regs},
+		0x85: &addInstruction{4, 0, l, regs},
+		// ??? 0x86: &addInstruction{8, 0, hl, regs},
+		// ??? 0xC6: &addInstruction{8, 1, nil??, reg},
+		0x8F: &addCarryInstruction{4, 0, a, regs},
+		0x88: &addCarryInstruction{4, 0, b, regs},
+		0x89: &addCarryInstruction{4, 0, c, regs},
+		0x8A: &addCarryInstruction{4, 0, d, regs},
+		0x8B: &addCarryInstruction{4, 0, e, regs},
+		0x8C: &addCarryInstruction{4, 0, h, regs},
+		0x8D: &addCarryInstruction{4, 0, l, regs},
+		// ??? 0x8E: &addCarryInstruction{8, 0, hl, regs},
+		// ??? 0xCE: &addCarryInstruction{8, 1, nil??, regs},
+		0x97: &subInstruction{4, 0, a, regs},
+		0x90: &subInstruction{4, 0, b, regs},
+		0x91: &subInstruction{4, 0, c, regs},
+		0x92: &subInstruction{4, 0, d, regs},
+		0x93: &subInstruction{4, 0, e, regs},
+		0x94: &subInstruction{4, 0, h, regs},
+		0x95: &subInstruction{4, 0, l, regs},
+		// ??? 0x96: &subInstruction{8, 0, hl, regs},
+		// ??? 0xD6: &subInstruction{8, 1, a, regs},
+		0x9F: &subCarryInstruction{4, 0, a, regs},
+		0x98: &subCarryInstruction{4, 0, b, regs},
+		0x99: &subCarryInstruction{4, 0, c, regs},
+		0x9A: &subCarryInstruction{4, 0, d, regs},
+		0x9B: &subCarryInstruction{4, 0, e, regs},
+		0x9C: &subCarryInstruction{4, 0, h, regs},
+		0x9D: &subCarryInstruction{4, 0, l, regs},
+		// ??? 0x9E: &subCarryInstruction{8, 0, hl, regs},
+		0xA7: &andInstruction{4, 0, a, regs},
+		0xA0: &andInstruction{4, 0, b, regs},
+		0xA1: &andInstruction{4, 0, c, regs},
+		0xA2: &andInstruction{4, 0, d, regs},
+		0xA3: &andInstruction{4, 0, e, regs},
+		0xA4: &andInstruction{4, 0, h, regs},
+		0xA5: &andInstruction{4, 0, l, regs},
+		// ??? 0xA6: &andInstruction{8, 0, hl, regs},
+		// ??? 0xE6: &andInstruction{8, 1, nil??, regs},
+		0xB7: &orInstruction{4, 0, a, regs},
+		0xB0: &orInstruction{4, 0, b, regs},
+		0xB1: &orInstruction{4, 0, c, regs},
+		0xB2: &orInstruction{4, 0, d, regs},
+		0xB3: &orInstruction{4, 0, e, regs},
+		0xB4: &orInstruction{4, 0, h, regs},
+		0xB5: &orInstruction{4, 0, l, regs},
+		// ?? 0xB6: &orInstruction{8, 0, hl, regs},
+		// ?? 0xF6: &orInstruction{8, 1, nil??, regs},
+		0xAF: &xorInstruction{4, 0, a, regs},
+		0xA8: &xorInstruction{4, 0, b, regs},
+		0xA9: &xorInstruction{4, 0, c, regs},
+		0xAA: &xorInstruction{4, 0, d, regs},
+		0xAB: &xorInstruction{4, 0, e, regs},
+		0xAC: &xorInstruction{4, 0, h, regs},
+		0xAD: &xorInstruction{4, 0, l, regs},
+		// ?? 0xAE: &xorInstruction{8, 0, hl, regs},
+		// ?? 0xEE: &xorInstruction{8, 1, nil??, regs},
+		0xBF: &cpInstruction{4, 0, a, regs},
+		0xB8: &cpInstruction{4, 0, b, regs},
+		0xB9: &cpInstruction{4, 0, c, regs},
+		0xBA: &cpInstruction{4, 0, d, regs},
+		0xBB: &cpInstruction{4, 0, e, regs},
+		0xBC: &cpInstruction{4, 0, h, regs},
+		0xBD: &cpInstruction{4, 0, l, regs},
+		// ?? 0xBE: &cpInstruction{8, 0, hl, regs},
+		// ?? 0xFE: &cpInstruction{8, 1, nil??, regs},
+		0x3C: &incInstruction{4, 0, a, regs},
+		0x04: &incInstruction{4, 0, b, regs},
+		0x0C: &incInstruction{4, 0, c, regs},
+		0x14: &incInstruction{4, 0, d, regs},
+		0x1C: &incInstruction{4, 0, e, regs},
+		0x24: &incInstruction{4, 0, h, regs},
+		0x2C: &incInstruction{4, 0, l, regs},
+		// ?? 0x34: &incInstruction{12, 0, hl, regs},
+		0x3D: &decInstruction{4, 0, a, regs},
+		0x05: &decInstruction{4, 0, b, regs},
+		0x0D: &decInstruction{4, 0, c, regs},
+		0x15: &decInstruction{4, 0, d, regs},
+		0x1D: &decInstruction{4, 0, e, regs},
+		0x25: &decInstruction{4, 0, h, regs},
+		0x2D: &decInstruction{4, 0, l, regs},
+		// ?? 0x35: &decInstruction{12, 0, hl, regs},
 	}
 }
 
@@ -190,4 +348,74 @@ func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) {
 
 func (i *loadTwoByteImmediateInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
+}
+
+func (i *addInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *addInstruction) Execute(params Parameters) {
+}
+
+func (i *addCarryInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *addCarryInstruction) Execute(params Parameters) {
+}
+
+func (i *subInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *subInstruction) Execute(params Parameters) {
+}
+
+func (i *subCarryInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *subCarryInstruction) Execute(params Parameters) {
+}
+
+func (i *andInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *andInstruction) Execute(params Parameters) {
+}
+
+func (i *orInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *orInstruction) Execute(params Parameters) {
+}
+
+func (i *xorInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *xorInstruction) Execute(params Parameters) {
+}
+
+func (i *cpInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *cpInstruction) Execute(params Parameters) {
+}
+
+func (i *incInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *incInstruction) Execute(params Parameters) {
+}
+
+func (i *decInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *decInstruction) Execute(params Parameters) {
 }
