@@ -14,6 +14,7 @@ type loadRegisterWithOffsetInstruction struct {
 	memAddr    uint16
 	offsetReg  Register
 	regs       Registers
+	mmu        MMU
 }
 
 type loadImmediateInstruction struct {
@@ -45,6 +46,8 @@ type loadMemoryWithRegisterInstruction struct {
 	memAddr    uint16
 	offset     Register
 	source     Register
+	regs       Registers
+	mmu        MMU
 }
 
 type noopInstruction struct {
@@ -344,8 +347,8 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		// ??? 0x0A: &loadRegisterInstruction{8, 0, a, bc, regs},
 		// ??? 0x1A: &loadRegisterInstruction{8, 0, a, de, regs},
 
-		0xF2: &loadRegisterWithOffsetInstruction{8, 0, a, 0xFF00, c, regs},
-		0xE2: &loadMemoryWithRegisterInstruction{8, 0, 0xFF00, c, a},
+		0xF2: &loadRegisterWithOffsetInstruction{8, 0, a, 0xFF00, c, regs, mmu},
+		0xE2: &loadMemoryWithRegisterInstruction{8, 0, 0xFF00, c, a, regs, mmu},
 
 		0x01: &loadTwoByteImmediateInstruction{12, 2, b, c, regs},
 		0x11: &loadTwoByteImmediateInstruction{12, 2, d, e, regs},
@@ -495,9 +498,6 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 }
 
 // Assuming for now that loading of 2 byte immediate values is handled in different type
-func (i *loadImmediateInstruction) Execute(params Parameters) {
-	i.regs.WriteRegister(i.dest, params[0])
-}
 
 func (n *noopInstruction) Execute(_ Parameters) {
 }
@@ -506,237 +506,262 @@ func (n *noopInstruction) GetNumParameterBytes() int {
 	return n.paramBytes
 }
 
+func (i *loadImmediateInstruction) Execute(params Parameters) {
+	i.regs.WriteRegister(i.dest, params[0])
+}
+
 func (i *loadImmediateInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
+}
+
+func (i *loadRegisterInstruction) Execute(params Parameters) {
+	i.regs.WriteRegister(i.dest, i.regs.ReadRegister(i.source))
 }
 
 func (i *loadRegisterInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
+func (i *loadRegisterWithOffsetInstruction) Execute(params Parameters) {
+	i.regs.WriteRegister(i.dest, i.mmu.ReadAt(i.memAddr+uint16(i.regs.ReadRegister(i.offsetReg))))
+}
+
 func (i *loadRegisterWithOffsetInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *loadRegisterInstruction) Execute(params Parameters) {
+func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) {
+	i.mmu.WriteByte(i.memAddr+uint16(i.regs.ReadRegister(i.offset)), i.regs.ReadRegister(i.source))
 }
 
 func (i *loadMemoryWithRegisterInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *loadRegisterWithOffsetInstruction) Execute(params Parameters) {
-}
-
-func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) {
-}
-
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) {
+	i.regs.WriteRegister(i.dest1, params[0])
+	i.regs.WriteRegister(i.dest2, params[1])
 }
 
 func (i *loadTwoByteImmediateInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *addInstruction) GetNumParameterBytes() int {
-	return i.paramBytes
-}
-
 func (i *addInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(a, i.regs.ReadRegister(i.source)+i.regs.ReadRegister(a))
 }
 
-func (i *addCarryInstruction) GetNumParameterBytes() int {
+func (i *addInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
 func (i *addCarryInstruction) Execute(params Parameters) {
 }
 
-func (i *subInstruction) GetNumParameterBytes() int {
+func (i *addCarryInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
 func (i *subInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(a, i.regs.ReadRegister(a)-i.regs.ReadRegister(i.source))
 }
 
-func (i *subCarryInstruction) GetNumParameterBytes() int {
+func (i *subInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
 func (i *subCarryInstruction) Execute(params Parameters) {
 }
 
-func (i *andInstruction) GetNumParameterBytes() int {
+func (i *subCarryInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
 func (i *andInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(a, i.regs.ReadRegister(a)&i.regs.ReadRegister(i.source))
+}
+
+func (i *andInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *orInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(a, i.regs.ReadRegister(a)|i.regs.ReadRegister(i.source))
 }
 
 func (i *orInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *orInstruction) Execute(params Parameters) {
+func (i *xorInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(a, i.regs.ReadRegister(a)^i.regs.ReadRegister(i.source))
 }
 
 func (i *xorInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *xorInstruction) Execute(params Parameters) {
+func (i *cpInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	_ = i.regs.ReadRegister(a) - i.regs.ReadRegister(i.source)
 }
 
 func (i *cpInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *cpInstruction) Execute(params Parameters) {
+func (i *incInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)+1)
 }
 
 func (i *incInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *incInstruction) Execute(params Parameters) {
+func (i *decInstruction) Execute(params Parameters) {
+	// TODO: need to set flags based on result
+	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)-1)
 }
 
 func (i *decInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *decInstruction) Execute(params Parameters) {
+func (i *inc16BitInstruction) Execute(params Parameters) {
 }
 
 func (i *inc16BitInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *inc16BitInstruction) Execute(params Parameters) {
+func (i *add16BitInstruction) Execute(params Parameters) {
 }
 
 func (i *add16BitInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *add16BitInstruction) Execute(params Parameters) {
+func (i *dec16BitInstruction) Execute(params Parameters) {
 }
 
 func (i *dec16BitInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *dec16BitInstruction) Execute(params Parameters) {
+func (i *daaInstruction) Execute(params Parameters) {
 }
 
 func (i *daaInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *daaInstruction) Execute(params Parameters) {
+func (i *cplInstruction) Execute(params Parameters) {
 }
 
 func (i *cplInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *cplInstruction) Execute(params Parameters) {
+func (i *haltInstruction) Execute(params Parameters) {
 }
 
 func (i *haltInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *haltInstruction) Execute(params Parameters) {
+func (i *stopInstruction) Execute(params Parameters) {
 }
 
 func (i *stopInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *stopInstruction) Execute(params Parameters) {
+func (i *diInstruction) Execute(params Parameters) {
 }
 
 func (i *diInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *diInstruction) Execute(params Parameters) {
+func (i *eiInstruction) Execute(params Parameters) {
 }
 
 func (i *eiInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *eiInstruction) Execute(params Parameters) {
+func (i *jumpInstruction) Execute(params Parameters) {
 }
 
 func (i *jumpInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *jumpInstruction) Execute(params Parameters) {
+func (i *conditionalJumpInstruction) Execute(params Parameters) {
 }
 
 func (i *conditionalJumpInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *conditionalJumpInstruction) Execute(params Parameters) {
+func (i *jumpHlInstruction) Execute(params Parameters) {
 }
 
 func (i *jumpHlInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *jumpHlInstruction) Execute(params Parameters) {
+func (i *jumpImmediateInstruction) Execute(params Parameters) {
 }
 
 func (i *jumpImmediateInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *jumpImmediateInstruction) Execute(params Parameters) {
+func (i *callInstruction) Execute(params Parameters) {
 }
 
 func (i *callInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *callInstruction) Execute(params Parameters) {
+func (i *callConditionalInstruction) Execute(params Parameters) {
 }
 
 func (i *callConditionalInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *callConditionalInstruction) Execute(params Parameters) {
+func (i *restartInstruction) Execute(params Parameters) {
 }
 
 func (i *restartInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *restartInstruction) Execute(params Parameters) {
+func (i *returnInstruction) Execute(params Parameters) {
 }
 
 func (i *returnInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *returnInstruction) Execute(params Parameters) {
+func (i *returnConditionalInstruction) Execute(params Parameters) {
 }
 
 func (i *returnConditionalInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *returnConditionalInstruction) Execute(params Parameters) {
+func (i *retiInstruction) Execute(params Parameters) {
 }
 
 func (i *retiInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
-}
-
-func (i *retiInstruction) Execute(params Parameters) {
 }
