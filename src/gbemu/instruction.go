@@ -122,9 +122,146 @@ type decInstruction struct {
 	regs       Registers
 }
 
+type add16BitInstruction struct {
+	cycles     int
+	paramBytes int
+	dest       Register
+	source     Register
+	regs       Registers
+}
+
+type inc16BitInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type dec16BitInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type swapInstruction struct {
+	cycles     int
+	paramBytes int
+	source     Register
+	regs       Registers
+}
+
+type daaInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type cplInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type ccfInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type scfInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type haltInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type stopInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type diInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type eiInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type jumpInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type conditionalJumpInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type jumpHlInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type jumpImmediateInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type conditionalJumpImmediateInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type callInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type restartInstruction struct {
+	cycles     int
+	paramBytes int
+	offset     uint16
+}
+
+type returnInstruction struct {
+	cycles     int
+	paramBytes int
+}
+
+type callConditionalInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type returnConditionalInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
+type retiInstruction struct {
+	cycles     int
+	paramBytes int
+	regs       Registers
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xEA, 0x3A, 0x32, 0x2A, 0x22, 0xE0, 0xF0
-	// 0xF8, 0xF9, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1
+	// 0xF8, 0xF9, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
+	// 0x07, 0x17, 0x0F, 0x1F
 	return map[byte]Instruction{
 		0x00: &noopInstruction{1, 0},
 
@@ -303,6 +440,57 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x25: &decInstruction{4, 0, h, regs},
 		0x2D: &decInstruction{4, 0, l, regs},
 		// ?? 0x35: &decInstruction{12, 0, hl, regs},
+		// ?? 0x09: &add16BitInstruction{8, 0, hl, bc, regs},
+		// ?? 0x19: &add16BitInstruction{8, 0, hl, de, regs},
+		// ?? 0x29: &add16BitInstruction{8, 0, hl, hl, regs},
+		// ?? 0x39: &add16BitInstruction{8, 0, hl, sp, regs},
+		// ?? 0x03: &inc16BitInstruction{8, 0, bc, regs},
+		// ?? 0x13: &inc16BitInstruction{8, 0, de, regs},
+		// ?? 0x23: &inc16BitInstruction{8, 0, hl, regs},
+		// ?? 0x33: &inc16BitInstruction{8, 0, sp, regs},
+		// ?? 0x0B: &dec16BitInstruction{8, 0, bc, regs},
+		// ?? 0x1B: &dec16BitInstruction{8, 0, de, regs},
+		// ?? 0x2B: &dec16BitInstruction{8, 0, hl, regs},
+		// ?? 0x3B: &dec16BitInstruction{8, 0, sp, regs},
+		// ?? 0x37: &swapInstruction{8, 0, a, regs},
+		// ?? 0x27: &daaInstruction{4, 0, regs},
+		// ?? 0x2F: &cplInstruction{4, 0 regs},
+		// ?? 0x3F: &ccfInstruction{4, 0 regs},
+		// ?? 0x37: &scfInstruction{4, 0, regs},
+		0x76: &haltInstruction{4, 0},
+		// ?? 0x1000: &stopInstruction{4, 0},
+		0xF3: &diInstruction{4, 0},
+		0xFB: &eiInstruction{4, 0},
+		0xC3: &jumpInstruction{12, 2},
+		// ?? 0xC2: &conditionalJumpInstruction{12, 2,},
+		// ?? 0xCA: &conditionalJumpInstruction{12, 2},
+		// ?? 0xD2: &conditionalJumpInstruction{12, 2},
+		// ?? 0xDA: &conditionalJumpInstruction{12, 2},
+		0xE9: &jumpHlInstruction{4, 0, regs},
+		0x18: &jumpImmediateInstruction{8, 1},
+		// ?? 0x20: &conditionalJumpImmediateInstruction{8, 1, regs},
+		// ?? 0x28: &conditionalJumpImmediateInstruction{8, 1, regs},
+		// ?? 0x30: &conditionalJumpImmediateInstruction{8, 1, regs},
+		// ?? 0x38: &conditionalJumpImmediateInstruction{8, 1, regs},
+		0xCD: &callInstruction{12, 2, regs},
+		// ?? 0xC4: &callConditionalInstruction{12, 2, regs},
+		// ?? 0xCC: &callConditionalInstruction{12, 2, regs},
+		// ?? 0xD4: &callConditionalInstruction{12, 2, regs},
+		// ?? 0xDC: &callConditionalInstruction{12, 2, regs},
+		0xC7: &restartInstruction{32, 0, 0x00},
+		0xCF: &restartInstruction{32, 0, 0x08},
+		0xD7: &restartInstruction{32, 0, 0x10},
+		0xDF: &restartInstruction{32, 0, 0x18},
+		0xE7: &restartInstruction{32, 0, 0x20},
+		0xEF: &restartInstruction{32, 0, 0x28},
+		0xF7: &restartInstruction{32, 0, 0x30},
+		0xFF: &restartInstruction{32, 0, 0x38},
+		0xC9: &returnInstruction{8, 0},
+		// ?? 0xC0: &returnConditionalInstruction{8, 0, regs},
+		// ?? 0xC8: &returnConditionalInstruction{8, 0, regs},
+		// ?? 0xD0: &returnConditionalInstruction{8, 0, regs},
+		// ?? 0xD8: &returnConditionalInstruction{8, 0, regs},
+		0xD9: &retiInstruction{8, 0, regs},
 	}
 }
 
@@ -418,4 +606,137 @@ func (i *decInstruction) GetNumParameterBytes() int {
 }
 
 func (i *decInstruction) Execute(params Parameters) {
+}
+
+func (i *inc16BitInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *inc16BitInstruction) Execute(params Parameters) {
+}
+
+func (i *add16BitInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *add16BitInstruction) Execute(params Parameters) {
+}
+
+func (i *dec16BitInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *dec16BitInstruction) Execute(params Parameters) {
+}
+
+func (i *daaInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *daaInstruction) Execute(params Parameters) {
+}
+
+func (i *cplInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *cplInstruction) Execute(params Parameters) {
+}
+
+func (i *haltInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *haltInstruction) Execute(params Parameters) {
+}
+
+func (i *stopInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *stopInstruction) Execute(params Parameters) {
+}
+
+func (i *diInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *diInstruction) Execute(params Parameters) {
+}
+
+func (i *eiInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *eiInstruction) Execute(params Parameters) {
+}
+
+func (i *jumpInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *jumpInstruction) Execute(params Parameters) {
+}
+
+func (i *conditionalJumpInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *conditionalJumpInstruction) Execute(params Parameters) {
+}
+
+func (i *jumpHlInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *jumpHlInstruction) Execute(params Parameters) {
+}
+
+func (i *jumpImmediateInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *jumpImmediateInstruction) Execute(params Parameters) {
+}
+
+func (i *callInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *callInstruction) Execute(params Parameters) {
+}
+
+func (i *callConditionalInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *callConditionalInstruction) Execute(params Parameters) {
+}
+
+func (i *restartInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *restartInstruction) Execute(params Parameters) {
+}
+
+func (i *returnInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *returnInstruction) Execute(params Parameters) {
+}
+
+func (i *returnConditionalInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *returnConditionalInstruction) Execute(params Parameters) {
+}
+
+func (i *retiInstruction) GetNumParameterBytes() int {
+	return i.paramBytes
+}
+
+func (i *retiInstruction) Execute(params Parameters) {
 }
