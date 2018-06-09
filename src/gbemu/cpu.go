@@ -14,7 +14,7 @@ type cpu struct {
 }
 
 func CreateCPU(mmu MMU) CPU {
-	registers := CreateRegisters()
+	registers := CreateRegisters(mmu)
 
 	return &cpu{
 		mmu:          mmu,
