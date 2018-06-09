@@ -91,8 +91,8 @@ func (c *cpu) Run(exitChannel chan bool) {
 		paramBytes := instruction.GetNumParameterBytes()
 		params := make(Parameters, paramBytes)
 		if paramBytes > 0 {
-			for i := 1; i <= paramBytes; i++ {
-				params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i))
+			for i := 0; i < paramBytes; i++ {
+				params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i+1))
 			}
 		}
 		instruction.Execute(params)
