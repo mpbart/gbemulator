@@ -39,13 +39,16 @@ type registers struct {
 	PC uint16 // Should be initialized to 0x100 to start execution
 	SP uint16 // Should be initialized to 0xFFFE on startup (grows downward in RAM)
 
+	mmu MMU
+
 	regs map[Register]byte
 }
 
-func CreateRegisters() Registers {
+func CreateRegisters(mmu MMU) Registers {
 	r := registers{
 		PC:   0,
 		SP:   0,
+		mmu: mmu,
 		regs: make(map[Register]byte),
 	}
 
@@ -62,7 +65,10 @@ func CreateRegisters() Registers {
 }
 
 func (r *registers) ReadSP() uint16 {
-	return r.SP
+	r.SP += 0x02
+	lsb := r.mmu.ReadAt(r.SP)
+	msb := r.mmu.ReadAt(r.SP + 1)
+	return (uint16(msb) << 8) + uint16(lsb)
 }
 
 func (r *registers) ReadPC() uint16 {
@@ -74,7 +80,9 @@ func (r *registers) WritePC(value uint16) {
 }
 
 func (r *registers) WriteSP(value uint16) {
-	r.SP = value
+	r.mmu.WriteByte(r.SP, byte(value & 0xFF))
+	r.mmu.WriteByte(r.SP+1, byte(value >> 8))
+	r.SP -= 0x02
 }
 
 func (r *registers) ReadRegister(reg Register) byte {
