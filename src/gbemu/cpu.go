@@ -95,12 +95,15 @@ func (c *cpu) Run(exitChannel chan bool) {
 				params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i+1))
 			}
 		}
-		instruction.Execute(params)
+		result := instruction.Execute(params)
 
-		fmt.Println(opcode)
-		c.IncrementPC(paramBytes + 1)
-		// Set PC to next instruction
-		// either PC + 1 + parameters OR jump to new address OR pop address from stack and jump there
+		fmt.Printf("executed %x\n", opcode)
+
+		if result.ShouldJump() {
+			c.registers.WritePC(result.NewAddress())
+		} else {
+			c.IncrementPC(paramBytes + 1)
+		}
 	}
 }
 

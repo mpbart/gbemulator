@@ -1,9 +1,21 @@
 package main
 
+import "fmt"
+
 type Parameters []byte
 
+type Addresser interface {
+	ShouldJump() bool
+	NewAddress() uint16
+}
+
+type address struct {
+	pcShouldJump bool
+	newAddress   uint16
+}
+
 type Instruction interface {
-	Execute(Parameters)
+	Execute(Parameters) Addresser
 	GetNumParameterBytes() int
 }
 
@@ -181,7 +193,8 @@ type jumpInstruction struct {
 
 type conditionalJumpInstruction struct {
 	basicInstruction
-	regs Registers
+	regs        Registers
+	conditional func() bool
 }
 
 type jumpHlInstruction struct {
@@ -191,11 +204,13 @@ type jumpHlInstruction struct {
 
 type jumpImmediateInstruction struct {
 	basicInstruction
+	regs Registers
 }
 
 type conditionalJumpImmediateInstruction struct {
 	basicInstruction
-	regs Registers
+	regs        Registers
+	conditional func() bool
 }
 
 type callInstruction struct {
@@ -205,21 +220,25 @@ type callInstruction struct {
 
 type restartInstruction struct {
 	basicInstruction
+	regs   Registers
 	offset uint16
 }
 
 type returnInstruction struct {
 	basicInstruction
+	regs Registers
 }
 
 type callConditionalInstruction struct {
 	basicInstruction
-	regs Registers
+	regs        Registers
+	conditional func() bool
 }
 
 type returnConditionalInstruction struct {
 	basicInstruction
-	regs Registers
+	regs        Registers
+	conditional func() bool
 }
 
 type retiInstruction struct {
@@ -431,167 +450,244 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xF3: &diInstruction{basicInstruction{4, 0}},
 		0xFB: &eiInstruction{basicInstruction{4, 0}},
 		0xC3: &jumpInstruction{basicInstruction{12, 2}},
-		// ?? 0xC2: &conditionalJumpInstruction{12, 2,},
-		// ?? 0xCA: &conditionalJumpInstruction{12, 2},
-		// ?? 0xD2: &conditionalJumpInstruction{12, 2},
-		// ?? 0xDA: &conditionalJumpInstruction{12, 2},
+		0xC2: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0xCA: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0xD2: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0xDA: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xE9: &jumpHlInstruction{basicInstruction{4, 0}, regs},
-		0x18: &jumpImmediateInstruction{basicInstruction{8, 1}},
-		// ?? 0x20: &conditionalJumpImmediateInstruction{8, 1, regs},
-		// ?? 0x28: &conditionalJumpImmediateInstruction{8, 1, regs},
-		// ?? 0x30: &conditionalJumpImmediateInstruction{8, 1, regs},
-		// ?? 0x38: &conditionalJumpImmediateInstruction{8, 1, regs},
+		0x18: &jumpImmediateInstruction{basicInstruction{8, 1}, regs},
+		0x20: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0x28: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0x30: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0x38: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xCD: &callInstruction{basicInstruction{12, 2}, regs},
-		// ?? 0xC4: &callConditionalInstruction{12, 2, regs},
-		// ?? 0xCC: &callConditionalInstruction{12, 2, regs},
-		// ?? 0xD4: &callConditionalInstruction{12, 2, regs},
-		// ?? 0xDC: &callConditionalInstruction{12, 2, regs},
-		0xC7: &restartInstruction{basicInstruction{32, 0}, 0x00},
-		0xCF: &restartInstruction{basicInstruction{32, 0}, 0x08},
-		0xD7: &restartInstruction{basicInstruction{32, 0}, 0x10},
-		0xDF: &restartInstruction{basicInstruction{32, 0}, 0x18},
-		0xE7: &restartInstruction{basicInstruction{32, 0}, 0x20},
-		0xEF: &restartInstruction{basicInstruction{32, 0}, 0x28},
-		0xF7: &restartInstruction{basicInstruction{32, 0}, 0x30},
-		0xFF: &restartInstruction{basicInstruction{32, 0}, 0x38},
-		0xC9: &returnInstruction{basicInstruction{8, 0}},
-		// ?? 0xC0: &returnConditionalInstruction{8, 0, regs},
-		// ?? 0xC8: &returnConditionalInstruction{8, 0, regs},
-		// ?? 0xD0: &returnConditionalInstruction{8, 0, regs},
-		// ?? 0xD8: &returnConditionalInstruction{8, 0, regs},
+		0xC4: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0xCC: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0xD4: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0xDC: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
+		0xC7: &restartInstruction{basicInstruction{32, 0}, regs, 0x00},
+		0xCF: &restartInstruction{basicInstruction{32, 0}, regs, 0x08},
+		0xD7: &restartInstruction{basicInstruction{32, 0}, regs, 0x10},
+		0xDF: &restartInstruction{basicInstruction{32, 0}, regs, 0x18},
+		0xE7: &restartInstruction{basicInstruction{32, 0}, regs, 0x20},
+		0xEF: &restartInstruction{basicInstruction{32, 0}, regs, 0x28},
+		0xF7: &restartInstruction{basicInstruction{32, 0}, regs, 0x30},
+		0xFF: &restartInstruction{basicInstruction{32, 0}, regs, 0x38},
+		0xC9: &returnInstruction{basicInstruction{8, 0}, regs},
+		0xC0: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0xC8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0xD0: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0xD8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xD9: &retiInstruction{basicInstruction{8, 0}, regs},
 	}
 }
 
 // Assuming for now that loading of 2 byte immediate values is handled in different type
 
-func (n *noopInstruction) Execute(_ Parameters) {
+func (a *address) ShouldJump() bool {
+	return a.pcShouldJump
 }
 
-func (i *loadImmediateInstruction) Execute(params Parameters) {
-	i.regs.WriteRegister(i.dest, params[0])
-}
-
-func (i *loadRegisterInstruction) Execute(params Parameters) {
-	i.regs.WriteRegister(i.dest, i.regs.ReadRegister(i.source))
+func (a *address) NewAddress() uint16 {
+	return a.newAddress
 }
 
 func (i *basicInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
 }
 
-func (i *loadRegisterWithOffsetInstruction) Execute(params Parameters) {
+func (n *noopInstruction) Execute(_ Parameters) Addresser {
+	return &address{}
+}
+
+func (i *loadImmediateInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteRegister(i.dest, params[0])
+	return &address{}
+}
+
+func (i *loadRegisterInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteRegister(i.dest, i.regs.ReadRegister(i.source))
+	return &address{}
+}
+
+func (i *loadRegisterWithOffsetInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest, i.mmu.ReadAt(i.memAddr+uint16(i.regs.ReadRegister(i.offsetReg))))
+	return &address{}
 }
 
-func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) {
+func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser {
 	i.mmu.WriteByte(i.memAddr+uint16(i.regs.ReadRegister(i.offset)), i.regs.ReadRegister(i.source))
+	return &address{}
 }
 
-func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) {
+func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest1, params[0])
 	i.regs.WriteRegister(i.dest2, params[1])
+	return &address{}
 }
 
-func (i *addInstruction) Execute(params Parameters) {
+func (i *addInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(a, i.regs.ReadRegister(i.source)+i.regs.ReadRegister(a))
+	return &address{}
 }
 
-func (i *addCarryInstruction) Execute(params Parameters) {
+func (i *addCarryInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *subInstruction) Execute(params Parameters) {
+func (i *subInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(a, i.regs.ReadRegister(a)-i.regs.ReadRegister(i.source))
+	return &address{}
 }
 
-func (i *subCarryInstruction) Execute(params Parameters) {
+func (i *subCarryInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *andInstruction) Execute(params Parameters) {
+func (i *andInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(a, i.regs.ReadRegister(a)&i.regs.ReadRegister(i.source))
+	return &address{}
 }
 
-func (i *orInstruction) Execute(params Parameters) {
+func (i *orInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(a, i.regs.ReadRegister(a)|i.regs.ReadRegister(i.source))
+	return &address{}
 }
 
-func (i *xorInstruction) Execute(params Parameters) {
+func (i *xorInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(a, i.regs.ReadRegister(a)^i.regs.ReadRegister(i.source))
+	return &address{}
 }
 
-func (i *cpInstruction) Execute(params Parameters) {
+func (i *cpInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	_ = i.regs.ReadRegister(a) - i.regs.ReadRegister(i.source)
+	return &address{}
 }
 
-func (i *incInstruction) Execute(params Parameters) {
+func (i *incInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)+1)
+	return &address{}
 }
 
-func (i *decInstruction) Execute(params Parameters) {
+func (i *decInstruction) Execute(params Parameters) Addresser {
 	// TODO: need to set flags based on result
 	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)-1)
+	return &address{}
 }
 
-func (i *inc16BitInstruction) Execute(params Parameters) {
+func (i *inc16BitInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *add16BitInstruction) Execute(params Parameters) {
+func (i *add16BitInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *dec16BitInstruction) Execute(params Parameters) {
+func (i *dec16BitInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *daaInstruction) Execute(params Parameters) {
+func (i *daaInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *cplInstruction) Execute(params Parameters) {
+func (i *cplInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *haltInstruction) Execute(params Parameters) {
+func (i *haltInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *stopInstruction) Execute(params Parameters) {
+func (i *stopInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *diInstruction) Execute(params Parameters) {
+func (i *diInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *eiInstruction) Execute(params Parameters) {
+func (i *eiInstruction) Execute(params Parameters) Addresser {
+	return &address{}
 }
 
-func (i *jumpInstruction) Execute(params Parameters) {
+func (i *jumpInstruction) Execute(params Parameters) Addresser {
+	newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
+	return &address{true, newPC}
 }
 
-func (i *conditionalJumpInstruction) Execute(params Parameters) {
+func (i *conditionalJumpInstruction) Execute(params Parameters) Addresser {
+	if i.conditional() == true {
+		newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
+		return &address{true, newPC}
+	}
+	return &address{}
 }
 
-func (i *jumpHlInstruction) Execute(params Parameters) {
+func (i *jumpHlInstruction) Execute(params Parameters) Addresser {
+	newPC, err := i.regs.ReadRegisterPair(h, l)
+	if err != nil {
+		fmt.Println("Error occured when attempting to execute jump HL instruction: ", err)
+		return &address{}
+	}
+	return &address{true, newPC}
 }
 
-func (i *jumpImmediateInstruction) Execute(params Parameters) {
+func (i *jumpImmediateInstruction) Execute(params Parameters) Addresser {
+	newPC := i.regs.ReadPC() + uint16(params[0])
+	return &address{true, newPC}
 }
 
-func (i *callInstruction) Execute(params Parameters) {
+func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Addresser {
+	if i.conditional() == true {
+		newPC := i.regs.ReadPC() + uint16(params[0])
+		return &address{true, newPC}
+	}
+	return &address{}
 }
 
-func (i *callConditionalInstruction) Execute(params Parameters) {
+func (i *callInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
+	return &address{true, newPC}
 }
 
-func (i *restartInstruction) Execute(params Parameters) {
+func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
+	if i.conditional() == true {
+		i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+		newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
+		return &address{true, newPC}
+	}
+	return &address{}
 }
 
-func (i *returnInstruction) Execute(params Parameters) {
+func (i *restartInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	return &address{true, 0x00 + i.offset}
 }
 
-func (i *returnConditionalInstruction) Execute(params Parameters) {
+func (i *returnInstruction) Execute(params Parameters) Addresser {
+	newPC := i.regs.ReadSP()
+	return &address{true, newPC}
 }
 
-func (i *retiInstruction) Execute(params Parameters) {
+func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
+	if i.conditional() == true {
+		newPC := i.regs.ReadSP()
+		return &address{true, newPC}
+	}
+	return &address{}
+}
+
+func (i *retiInstruction) Execute(params Parameters) Addresser {
+	// Need to deal with enabling/disabling interrupts
+	newPC := i.regs.ReadSP()
+	return &address{true, newPC}
 }

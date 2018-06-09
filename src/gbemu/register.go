@@ -48,7 +48,7 @@ func CreateRegisters(mmu MMU) Registers {
 	r := registers{
 		PC:   0,
 		SP:   0,
-		mmu: mmu,
+		mmu:  mmu,
 		regs: make(map[Register]byte),
 	}
 
@@ -80,8 +80,8 @@ func (r *registers) WritePC(value uint16) {
 }
 
 func (r *registers) WriteSP(value uint16) {
-	r.mmu.WriteByte(r.SP, byte(value & 0xFF))
-	r.mmu.WriteByte(r.SP+1, byte(value >> 8))
+	r.mmu.WriteByte(r.SP, byte(value&0xFF))
+	r.mmu.WriteByte(r.SP+1, byte(value>>8))
 	r.SP -= 0x02
 }
 
