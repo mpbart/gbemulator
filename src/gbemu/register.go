@@ -33,6 +33,7 @@ type Registers interface {
 	ReadSP() uint16
 	WritePC(uint16)
 	WriteSP(uint16)
+	WriteSPImmediate(uint16)
 }
 
 type registers struct {
@@ -83,6 +84,11 @@ func (r *registers) WriteSP(value uint16) {
 	r.mmu.WriteByte(r.SP, byte(value&0xFF))
 	r.mmu.WriteByte(r.SP+1, byte(value>>8))
 	r.SP -= 0x02
+}
+
+// Implemented for decrement/increment SP instructions
+func (r *registers) WriteSPImmediate(value uint16) {
+	r.SP = value
 }
 
 func (r *registers) ReadRegister(reg Register) byte {

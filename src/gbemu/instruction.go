@@ -128,21 +128,43 @@ type decInstruction struct {
 
 type add16BitInstruction struct {
 	basicInstruction
-	dest   Register
-	source Register
+	source1 Register
+	source2 Register
 	regs   Registers
+}
+
+type add16BitFromSPInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type addSP16BitInstruction struct {
+	basicInstruction
+	regs Registers
 }
 
 type inc16BitInstruction struct {
 	basicInstruction
-	source Register
+	source1 Register
+	source2 Register
+	regs   Registers
+}
+
+type incSP16BitInstruction struct {
+	basicInstruction
 	regs   Registers
 }
 
 type dec16BitInstruction struct {
 	basicInstruction
-	source Register
+	source1 Register
+	source2 Register
 	regs   Registers
+}
+
+type decSP16BitInstruction struct {
+	basicInstruction
+	regs Registers
 }
 
 type swapInstruction struct {
@@ -428,21 +450,22 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x25: &decInstruction{basicInstruction{4, 0}, h, regs},
 		0x2D: &decInstruction{basicInstruction{4, 0}, l, regs},
 		// ?? 0x35: &decInstruction{12, 0, hl, regs},
-		// ?? 0x09: &add16BitInstruction{8, 0, hl, bc, regs},
-		// ?? 0x19: &add16BitInstruction{8, 0, hl, de, regs},
-		// ?? 0x29: &add16BitInstruction{8, 0, hl, hl, regs},
-		// ?? 0x39: &add16BitInstruction{8, 0, hl, sp, regs},
-		// ?? 0x03: &inc16BitInstruction{8, 0, bc, regs},
-		// ?? 0x13: &inc16BitInstruction{8, 0, de, regs},
-		// ?? 0x23: &inc16BitInstruction{8, 0, hl, regs},
-		// ?? 0x33: &inc16BitInstruction{8, 0, sp, regs},
-		// ?? 0x0B: &dec16BitInstruction{8, 0, bc, regs},
-		// ?? 0x1B: &dec16BitInstruction{8, 0, de, regs},
-		// ?? 0x2B: &dec16BitInstruction{8, 0, hl, regs},
-		// ?? 0x3B: &dec16BitInstruction{8, 0, sp, regs},
+		0x09: &add16BitInstruction{basicInstruction{8, 0}, b, c, regs},
+		0x19: &add16BitInstruction{basicInstruction{8, 0}, d, e, regs},
+		0x29: &add16BitInstruction{basicInstruction{8, 0}, h, l, regs},
+		0x39: &add16BitFromSPInstruction{basicInstruction{8, 0}, regs},
+		0xE8: &addSP16BitInstruction{basicInstruction{16, 0}, regs},
+		0x03: &inc16BitInstruction{basicInstruction{8, 0}, b, c, regs},
+		0x13: &inc16BitInstruction{basicInstruction{8, 0}, d, e, regs},
+		0x23: &inc16BitInstruction{basicInstruction{8, 0}, h, l, regs},
+		0x33: &incSP16BitInstruction{basicInstruction{8, 0}, regs},
+		0x0B: &dec16BitInstruction{basicInstruction{8, 0}, b, c, regs},
+		0x1B: &dec16BitInstruction{basicInstruction{8, 0}, d, e, regs},
+		0x2B: &dec16BitInstruction{basicInstruction{8, 0}, h, l, regs},
+		0x3B: &decSP16BitInstruction{basicInstruction{8, 0}, regs},
 		// ?? 0x37: &swapInstruction{8, 0, a, regs},
-		// ?? 0x27: &daaInstruction{4, 0, regs},
-		// ?? 0x2F: &cplInstruction{4, 0 regs},
+		0x27: &daaInstruction{basicInstruction{4, 0}, regs},
+		0x2F: &cplInstruction{basicInstruction{4, 0}, regs},
 		// ?? 0x3F: &ccfInstruction{4, 0 regs},
 		// ?? 0x37: &scfInstruction{4, 0, regs},
 		0x76: &haltInstruction{basicInstruction{4, 0}},
@@ -582,23 +605,139 @@ func (i *decInstruction) Execute(params Parameters) Addresser {
 	return &address{}
 }
 
+func (i *addSP16BitInstruction) Execute(params Parameters) Addresser {
+	immediateValue := computeTwosComplement(uint8(params[0]))
+	spValue := int(i.regs.ReadSP())
+	flags := 0
+
+	if immediateValue < 0 {
+		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
+			flags += 1 // set c flag
+		}
+	// TODO: based on behavior from the debugger I am currently using it doesn't 
+	// look like this needs to be set when subtracting????
+	//	if ((spValue + immediateValue) & 0x0F) > (spValue & 0x0F) {
+	//		flags += 2 // set h flag
+	//	}
+
+	} else {
+		if ((spValue + immediateValue) & 0xFF) < (spValue & 0xFF) {
+			flags += 1 // set c flag
+		}
+		if ((spValue + immediateValue) & 0x0F) < (spValue & 0x0F) {
+			flags += 2 // set h flag
+		}
+
+	}
+	spValue += immediateValue
+	i.regs.WriteSPImmediate(uint16(spValue))
+	i.regs.WriteRegister(f, uint8(flags))
+	return &address{}
+}
+
 func (i *inc16BitInstruction) Execute(params Parameters) Addresser {
+	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	val += 1
+	i.regs.WriteRegisterPair(i.source1, i.source2, val)
+	return &address{}
+}
+
+func (i *incSP16BitInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteSPImmediate(i.regs.ReadSP() + 1)
+	return &address{}
+}
+
+func (i *add16BitFromSPInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x80
+
+	spVal := i.regs.ReadSP()
+	hlVal, err := i.regs.ReadRegisterPair(h, l)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if spVal+hlVal < hlVal {
+		flags += 3
+	}
+	i.regs.WriteRegisterPair(h, l, hlVal+spVal)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *add16BitInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x80
+	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	hlVal, err := i.regs.ReadRegisterPair(h, l)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if val+hlVal < hlVal {
+		flags += 3
+	}
+	i.regs.WriteRegisterPair(h, l, val+hlVal)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *decSP16BitInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteSPImmediate(i.regs.ReadSP() - 1)
 	return &address{}
 }
 
 func (i *dec16BitInstruction) Execute(params Parameters) Addresser {
+	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val -= 1
+	i.regs.WriteRegisterPair(i.source1, i.source2, uint16(val))
 	return &address{}
 }
 
 func (i *daaInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	flagValue := i.regs.ReadRegister(f)
+	flags := flagValue & 0x40 // Preserve n flag but pre-emptively reset others
+	carryPerformed := false // Pretty weird but the A register knows if it overflows above 0xFF and will 
+							// continue the daa with that knowledge. Since golang will overflow our byte
+							// value we need to know whether a 0 value was caused by carrying over a digit
+							// from the previous operation or whether it was 0 to begin with
+
+	if aValue & 0x0F > 9 || (flagValue & 0x20) == 0x20 {
+		aValue = aValue + 0x06
+		carryPerformed = true
+	}
+
+	if ((aValue & 0xF0) >> 4) > 9 || (aValue == 0 && carryPerformed) || (flagValue & 0x10) == 0x10 {
+		if aValue + 0x60 < aValue { // Check for overflow of upper 4 bits
+			flags += 1
+		}
+		aValue = aValue + 0x60
+	}
+
+	if aValue == 0 {
+		flags += 8
+	}
+	i.regs.WriteRegister(a, aValue)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
+// A & 0xFF, also set n, h flags to 1
 func (i *cplInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteRegister(a, (i.regs.ReadRegister(a) ^ 0xFF))
+	i.regs.WriteRegister(f, (i.regs.ReadRegister(f) | 0x60))
 	return &address{}
 }
 
@@ -690,4 +829,9 @@ func (i *retiInstruction) Execute(params Parameters) Addresser {
 	// Need to deal with enabling/disabling interrupts
 	newPC := i.regs.ReadSP()
 	return &address{true, newPC}
+}
+
+func computeTwosComplement(number uint8) int {
+	mask := (1 << 7)
+	return int(number & ^uint8(mask)) - int(uint8(mask) & number)
 }
