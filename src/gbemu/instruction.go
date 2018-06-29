@@ -66,6 +66,20 @@ type noopInstruction struct {
 	basicInstruction
 }
 
+type pushInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+}
+
+type popInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+}
+
 type addInstruction struct {
 	basicInstruction
 	source Register
@@ -363,6 +377,14 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		// TODO: This is really hacky, fix it
 		// 0x31: &loadTwoByteImmediateInstruction{12, 2, sp, sp, regs},
 
+		0xF5: &pushInstruction{basicInstruction{16, 0}, a, f, regs},
+		0xC5: &pushInstruction{basicInstruction{16, 0}, b, c, regs},
+		0xD5: &pushInstruction{basicInstruction{16, 0}, d, e, regs},
+		0xE5: &pushInstruction{basicInstruction{16, 0}, h, l, regs},
+		0xF1: &popInstruction{basicInstruction{12, 0}, a, f, regs},
+		0xC1: &popInstruction{basicInstruction{12, 0}, b, c, regs},
+		0xD1: &popInstruction{basicInstruction{12, 0}, d, e, regs},
+		0xE1: &popInstruction{basicInstruction{12, 0}, h, l, regs},
 		0x87: &addInstruction{basicInstruction{4, 0}, a, regs},
 		0x80: &addInstruction{basicInstruction{4, 0}, b, regs},
 		0x81: &addInstruction{basicInstruction{4, 0}, c, regs},
@@ -546,6 +568,22 @@ func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest1, params[0])
 	i.regs.WriteRegister(i.dest2, params[1])
+	return &address{}
+}
+
+func (i *pushInstruction) Execute(params Parameters) Addresser {
+	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.regs.WriteSP(val)
+	return &address{}
+}
+
+func (i *popInstruction) Execute(params Parameters) Addresser {
+	stackValue := i.regs.ReadSP()
+	i.regs.WriteRegister(i.source1, byte((stackValue&0xFF00)>>8))
+	i.regs.WriteRegister(i.source2, byte(stackValue&0x00FF))
 	return &address{}
 }
 
