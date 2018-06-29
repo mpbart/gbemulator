@@ -130,7 +130,7 @@ type add16BitInstruction struct {
 	basicInstruction
 	source1 Register
 	source2 Register
-	regs   Registers
+	regs    Registers
 }
 
 type add16BitFromSPInstruction struct {
@@ -147,19 +147,19 @@ type inc16BitInstruction struct {
 	basicInstruction
 	source1 Register
 	source2 Register
-	regs   Registers
+	regs    Registers
 }
 
 type incSP16BitInstruction struct {
 	basicInstruction
-	regs   Registers
+	regs Registers
 }
 
 type dec16BitInstruction struct {
 	basicInstruction
 	source1 Register
 	source2 Register
-	regs   Registers
+	regs    Registers
 }
 
 type decSP16BitInstruction struct {
@@ -550,58 +550,165 @@ func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *addInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(a, i.regs.ReadRegister(i.source)+i.regs.ReadRegister(a))
+	flags := i.regs.ReadRegister(f)
+	adder := i.regs.ReadRegister(i.source)
+	aValue := i.regs.ReadRegister(a)
+	result := aValue + adder
+	flags = 0
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0 && adder != 0 {
+		flags += 0x20
+	}
+	if result&0xFF == 0 && adder != 0 {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(a, result)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *addCarryInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	adder := i.regs.ReadRegister(i.source)
+	aValue := i.regs.ReadRegister(a)
+	carryBit := ((flags & 0x10) >> 4)
+	result := aValue + adder + carryBit
+	flags = 0
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0 && (carryBit != 0 || adder != 0) {
+		flags += 0x20
+	}
+	if result&0xFF == 0 && (carryBit != 0 || adder != 0) {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(a, result)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *subInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(a, i.regs.ReadRegister(a)-i.regs.ReadRegister(i.source))
+	flags := i.regs.ReadRegister(f)
+	subtractor := i.regs.ReadRegister(i.source)
+	aValue := i.regs.ReadRegister(a)
+	result := aValue - subtractor
+	flags = 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if result&0xFF == 0xFF {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(a, result)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *subCarryInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	subtractor := i.regs.ReadRegister(i.source)
+	aValue := i.regs.ReadRegister(a)
+	result := aValue - subtractor - ((flags & 0x10) >> 4)
+	flags = 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if result&0xFF == 0xFF {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(a, result)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *andInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(a, i.regs.ReadRegister(a)&i.regs.ReadRegister(i.source))
+	result := i.regs.ReadRegister(a) & i.regs.ReadRegister(i.source)
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
 	return &address{}
 }
 
 func (i *orInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(a, i.regs.ReadRegister(a)|i.regs.ReadRegister(i.source))
+	result := i.regs.ReadRegister(a) | i.regs.ReadRegister(i.source)
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
 	return &address{}
 }
 
 func (i *xorInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(a, i.regs.ReadRegister(a)^i.regs.ReadRegister(i.source))
+	result := i.regs.ReadRegister(a) ^ i.regs.ReadRegister(i.source)
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
 	return &address{}
 }
 
 func (i *cpInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	_ = i.regs.ReadRegister(a) - i.regs.ReadRegister(i.source)
+	aValue := i.regs.ReadRegister(a)
+	otherValue := i.regs.ReadRegister(i.source)
+	result := aValue - otherValue
+	flags := i.regs.ReadRegister(f)
+	flags = flags | 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if aValue < otherValue {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *incInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)+1)
+	newValue := i.regs.ReadRegister(i.source) + 1
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x10
+	if newValue == 0 {
+		flags += 0x80
+	}
+	if newValue&0x0F == 0 {
+		flags += 0x20
+	}
+	i.regs.WriteRegister(i.source, newValue)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
 func (i *decInstruction) Execute(params Parameters) Addresser {
-	// TODO: need to set flags based on result
-	i.regs.WriteRegister(i.source, i.regs.ReadRegister(i.source)-1)
+	newValue := i.regs.ReadRegister(i.source) - 1
+	flags := i.regs.ReadRegister(f)
+	flags = flags | 0x40
+	if newValue == 0 {
+		flags += 0x80
+	}
+	if newValue&0x0F == 0x0F {
+		flags += 0x20
+	}
+	i.regs.WriteRegister(i.source, newValue)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
@@ -614,11 +721,11 @@ func (i *addSP16BitInstruction) Execute(params Parameters) Addresser {
 		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
 			flags += 1 // set c flag
 		}
-	// TODO: based on behavior from the debugger I am currently using it doesn't 
-	// look like this needs to be set when subtracting????
-	//	if ((spValue + immediateValue) & 0x0F) > (spValue & 0x0F) {
-	//		flags += 2 // set h flag
-	//	}
+		// TODO: based on behavior from the debugger I am currently using it doesn't
+		// look like this needs to be set when subtracting????
+		//	if ((spValue + immediateValue) & 0x0F) > (spValue & 0x0F) {
+		//		flags += 2 // set h flag
+		//	}
 
 	} else {
 		if ((spValue + immediateValue) & 0xFF) < (spValue & 0xFF) {
@@ -709,18 +816,18 @@ func (i *daaInstruction) Execute(params Parameters) Addresser {
 	aValue := i.regs.ReadRegister(a)
 	flagValue := i.regs.ReadRegister(f)
 	flags := flagValue & 0x40 // Preserve n flag but pre-emptively reset others
-	carryPerformed := false // Pretty weird but the A register knows if it overflows above 0xFF and will 
-							// continue the daa with that knowledge. Since golang will overflow our byte
-							// value we need to know whether a 0 value was caused by carrying over a digit
-							// from the previous operation or whether it was 0 to begin with
+	carryPerformed := false   // Pretty weird but the A register knows if it overflows above 0xFF and will
+	// continue the daa with that knowledge. Since golang will overflow our byte
+	// value we need to know whether a 0 value was caused by carrying over a digit
+	// from the previous operation or whether it was 0 to begin with
 
-	if aValue & 0x0F > 9 || (flagValue & 0x20) == 0x20 {
+	if aValue&0x0F > 9 || (flagValue&0x20) == 0x20 {
 		aValue = aValue + 0x06
 		carryPerformed = true
 	}
 
-	if ((aValue & 0xF0) >> 4) > 9 || (aValue == 0 && carryPerformed) || (flagValue & 0x10) == 0x10 {
-		if aValue + 0x60 < aValue { // Check for overflow of upper 4 bits
+	if ((aValue&0xF0)>>4) > 9 || (aValue == 0 && carryPerformed) || (flagValue&0x10) == 0x10 {
+		if aValue+0x60 < aValue { // Check for overflow of upper 4 bits
 			flags += 1
 		}
 		aValue = aValue + 0x60
@@ -833,5 +940,5 @@ func (i *retiInstruction) Execute(params Parameters) Addresser {
 
 func computeTwosComplement(number uint8) int {
 	mask := (1 << 7)
-	return int(number & ^uint8(mask)) - int(uint8(mask) & number)
+	return int(number & ^uint8(mask)) - int(uint8(mask)&number)
 }
