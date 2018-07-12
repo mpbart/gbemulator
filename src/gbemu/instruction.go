@@ -359,8 +359,58 @@ type orFromMemoryInstruction struct {
 	mmu     MMU
 }
 
+type lddInstruction struct {
+	basicInstruction
+	dest    Register
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type lddhlInstruction struct {
+	basicInstruction
+	dest1  Register
+	dest2  Register
+	source Register
+	regs   Registers
+	mmu    MMU
+}
+
+type ldiInstruction struct {
+	basicInstruction
+	dest    Register
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type ldihlInstruction struct {
+	basicInstruction
+	dest1  Register
+	dest2  Register
+	source Register
+	regs   Registers
+	mmu    MMU
+}
+
+type ldhImmediateInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+	mmu    MMU
+}
+
+type ldhaInstruction struct {
+	basicInstruction
+	dest Register
+	regs Registers
+	mmu  MMU
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
-	// Opcodes to investigate how to handle: 0xEA, 0x3A, 0x32, 0x2A, 0x22, 0xE0, 0xF0
+	// Opcodes to investigate how to handle: 0xEA,
 	// 0xF8, 0xF9, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
 	// 0x07, 0x17, 0x0F, 0x1F
 	return map[byte]Instruction{
@@ -380,6 +430,10 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x7C: &loadRegisterInstruction{basicInstruction{4, 0}, a, h, regs},
 		0x7D: &loadRegisterInstruction{basicInstruction{4, 0}, a, l, regs},
 		0x7F: &loadRegisterInstruction{basicInstruction{4, 0}, a, a, regs},
+		0x22: &ldihlInstruction{basicInstruction{8, 0}, h, l, a, regs, mmu},
+		0x2A: &ldiInstruction{basicInstruction{8, 0}, a, h, l, regs, mmu},
+		0x32: &lddhlInstruction{basicInstruction{8, 0}, h, l, a, regs, mmu},
+		0x3A: &lddInstruction{basicInstruction{8, 0}, a, h, l, regs, mmu},
 		0x40: &loadRegisterInstruction{basicInstruction{4, 0}, b, b, regs},
 		0x41: &loadRegisterInstruction{basicInstruction{4, 0}, b, c, regs},
 		0x42: &loadRegisterInstruction{basicInstruction{4, 0}, b, d, regs},
@@ -457,7 +511,9 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xF5: &pushInstruction{basicInstruction{16, 0}, a, f, regs},
 		0xC5: &pushInstruction{basicInstruction{16, 0}, b, c, regs},
 		0xD5: &pushInstruction{basicInstruction{16, 0}, d, e, regs},
+		0xE0: &ldhImmediateInstruction{basicInstruction{12, 1}, a, regs, mmu},
 		0xE5: &pushInstruction{basicInstruction{16, 0}, h, l, regs},
+		0xF0: &ldhaInstruction{basicInstruction{12, 1}, a, regs, mmu},
 		0xF1: &popInstruction{basicInstruction{12, 0}, a, f, regs},
 		0xC1: &popInstruction{basicInstruction{12, 0}, b, c, regs},
 		0xD1: &popInstruction{basicInstruction{12, 0}, d, e, regs},
@@ -645,6 +701,61 @@ func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest1, params[0])
 	i.regs.WriteRegister(i.dest2, params[1])
+	return &address{}
+}
+
+func (i *ldhImmediateInstruction) Execute(params Parameters) Addresser {
+	i.mmu.WriteByte(0xFF00+uint16(params[0]), i.regs.ReadRegister(i.source))
+	return &address{}
+}
+
+func (i *ldhaInstruction) Execute(params Parameters) Addresser {
+	val := i.mmu.ReadAt(0xFF00 + uint16(params[0]))
+	i.regs.WriteRegister(i.dest, val)
+	return &address{}
+}
+
+func (i *ldiInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+	i.regs.WriteRegister(i.dest, val)
+	i.regs.WriteRegisterPair(i.source1, i.source2, addr+1)
+	return &address{}
+}
+
+func (i *ldihlInstruction) Execute(params Parameters) Addresser {
+	val := i.regs.ReadRegister(a)
+	addr, err := i.regs.ReadRegisterPair(i.dest1, i.dest2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.mmu.WriteByte(addr, val)
+	i.regs.WriteRegisterPair(i.dest1, i.dest2, addr+1)
+	return &address{}
+}
+
+func (i *lddhlInstruction) Execute(params Parameters) Addresser {
+	val := i.regs.ReadRegister(a)
+	addr, err := i.regs.ReadRegisterPair(i.dest1, i.dest2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.mmu.WriteByte(addr, val)
+	i.regs.WriteRegisterPair(i.dest1, i.dest2, addr-1)
+	return &address{}
+}
+
+func (i *lddInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+	i.regs.WriteRegister(i.dest, val)
+	i.regs.WriteRegisterPair(i.source1, i.source2, addr-1)
 	return &address{}
 }
 
