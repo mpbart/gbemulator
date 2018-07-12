@@ -409,9 +409,16 @@ type ldhaInstruction struct {
 	mmu  MMU
 }
 
+type ldsphlInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xEA,
-	// 0xF8, 0xF9, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
+	// 0xF8, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
 	// 0x07, 0x17, 0x0F, 0x1F
 	return map[byte]Instruction{
 		0x00: &noopInstruction{basicInstruction{1, 0}},
@@ -509,6 +516,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		// 0x31: &loadTwoByteImmediateInstruction{12, 2, sp, sp, regs},
 
 		0xF5: &pushInstruction{basicInstruction{16, 0}, a, f, regs},
+		0xF9: &ldsphlInstruction{basicInstruction{8, 0}, h, l, regs},
 		0xC5: &pushInstruction{basicInstruction{16, 0}, b, c, regs},
 		0xD5: &pushInstruction{basicInstruction{16, 0}, d, e, regs},
 		0xE0: &ldhImmediateInstruction{basicInstruction{12, 1}, a, regs, mmu},
@@ -701,6 +709,15 @@ func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest1, params[0])
 	i.regs.WriteRegister(i.dest2, params[1])
+	return &address{}
+}
+
+func (i *ldsphlInstruction) Execute(params Parameters) Addresser {
+	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.regs.WriteSPImmediate(val)
 	return &address{}
 }
 
