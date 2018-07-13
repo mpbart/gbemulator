@@ -416,6 +416,13 @@ type ldsphlInstruction struct {
 	regs    Registers
 }
 
+type ldhlspInstruction struct {
+	basicInstruction
+	dest1 Register
+	dest2 Register
+	regs  Registers
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xEA,
 	// 0xF8, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
@@ -516,6 +523,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		// 0x31: &loadTwoByteImmediateInstruction{12, 2, sp, sp, regs},
 
 		0xF5: &pushInstruction{basicInstruction{16, 0}, a, f, regs},
+		0xF8: &ldhlspInstruction{basicInstruction{12, 1}, h, l, regs},
 		0xF9: &ldsphlInstruction{basicInstruction{8, 0}, h, l, regs},
 		0xC5: &pushInstruction{basicInstruction{16, 0}, b, c, regs},
 		0xD5: &pushInstruction{basicInstruction{16, 0}, d, e, regs},
@@ -1137,6 +1145,29 @@ func (i *decInstruction) Execute(params Parameters) Addresser {
 	}
 	i.regs.WriteRegister(i.source, newValue)
 	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+// TODO: test this instruction with the debugger
+func (i *ldhlspInstruction) Execute(params Parameters) Addresser {
+	immediateValue := computeTwosComplement(uint8(params[0]))
+	spValue := int(i.regs.ReadSP())
+	flags := 0
+	if immediateValue < 0 {
+		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
+			flags += 1
+		}
+	} else {
+		if ((spValue + immediateValue) & 0xFF) < (spValue & 0xFF) {
+			flags += 1 // set c flag
+		}
+		if ((spValue + immediateValue) & 0x0F) < (spValue & 0x0F) {
+			flags += 2 // set h flag
+		}
+	}
+	spValue += immediateValue
+	i.regs.WriteRegisterPair(h, l, uint16(spValue)+uint16(immediateValue))
+	i.regs.WriteRegister(f, uint8(flags))
 	return &address{}
 }
 
