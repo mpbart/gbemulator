@@ -423,14 +423,21 @@ type ldhlspInstruction struct {
 	regs  Registers
 }
 
+type loadSpImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+	mmu  MMU
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xEA,
-	// 0xF8, 0x08, 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
+	// 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
 	// 0x07, 0x17, 0x0F, 0x1F
 	return map[byte]Instruction{
 		0x00: &noopInstruction{basicInstruction{1, 0}},
 
 		0x06: &loadImmediateInstruction{basicInstruction{8, 1}, b, regs},
+		0x08: &loadSpImmediateInstruction{basicInstruction{20, 2}, regs, mmu},
 		0x0E: &loadImmediateInstruction{basicInstruction{8, 1}, c, regs},
 		0x16: &loadImmediateInstruction{basicInstruction{8, 1}, d, regs},
 		0x1E: &loadImmediateInstruction{basicInstruction{8, 1}, e, regs},
@@ -711,6 +718,14 @@ func (i *loadRegisterWithOffsetInstruction) Execute(params Parameters) Addresser
 
 func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser {
 	i.mmu.WriteByte(i.memAddr+uint16(i.regs.ReadRegister(i.offset)), i.regs.ReadRegister(i.source))
+	return &address{}
+}
+
+func (i *loadSpImmediateInstruction) Execute(params Parameters) Addresser {
+	addr := uint16(params[0])<<8 + uint16(params[1])
+	spValue := i.regs.ReadSP()
+	i.mmu.WriteByte(addr, byte(spValue&0x00FF))
+	i.mmu.WriteByte(addr+0x02, byte(spValue&0xFF00>>8))
 	return &address{}
 }
 
