@@ -30,10 +30,11 @@ type Registers interface {
 	WriteRegisterPair(Register, Register, uint16) error
 
 	ReadPC() uint16
-	ReadSP() uint16
 	WritePC(uint16)
+	PopSP() uint16
+	PushSP(uint16)
 	WriteSP(uint16)
-	WriteSPImmediate(uint16)
+	ReadSP() uint16
 }
 
 type registers struct {
@@ -65,11 +66,25 @@ func CreateRegisters(mmu MMU) Registers {
 	return &r
 }
 
-func (r *registers) ReadSP() uint16 {
+func (r *registers) PopSP() uint16 {
 	r.SP += 0x02
 	lsb := r.mmu.ReadAt(r.SP)
 	msb := r.mmu.ReadAt(r.SP + 1)
 	return (uint16(msb) << 8) + uint16(lsb)
+}
+
+func (r *registers) PushSP(value uint16) {
+	r.mmu.WriteByte(r.SP, byte(value&0xFF))
+	r.mmu.WriteByte(r.SP+1, byte(value>>8))
+	r.SP -= 0x02
+}
+
+func (r *registers) ReadSP() uint16 {
+	return r.SP
+}
+
+func (r *registers) WriteSP(value uint16) {
+	r.SP = value
 }
 
 func (r *registers) ReadPC() uint16 {
@@ -78,17 +93,6 @@ func (r *registers) ReadPC() uint16 {
 
 func (r *registers) WritePC(value uint16) {
 	r.PC = value
-}
-
-func (r *registers) WriteSP(value uint16) {
-	r.mmu.WriteByte(r.SP, byte(value&0xFF))
-	r.mmu.WriteByte(r.SP+1, byte(value>>8))
-	r.SP -= 0x02
-}
-
-// Implemented for decrement/increment SP instructions
-func (r *registers) WriteSPImmediate(value uint16) {
-	r.SP = value
 }
 
 func (r *registers) ReadRegister(reg Register) byte {

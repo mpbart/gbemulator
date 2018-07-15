@@ -25,7 +25,7 @@ func CreateCPU(mmu MMU) CPU {
 
 func (cpu *cpu) Reset() {
 	cpu.registers.WritePC(0x100)
-	cpu.registers.WriteSP(0xFFFE)
+	cpu.registers.PushSP(0xFFFE)
 	cpu.registers.WriteRegisterPair(a, f, 0x01B0)
 	cpu.registers.WriteRegisterPair(b, c, 0x0013)
 	cpu.registers.WriteRegisterPair(d, e, 0x00D8)
@@ -65,6 +65,7 @@ func (cpu *cpu) Reset() {
 	cpu.mmu.WriteByte(0xFFFF, 0x00)
 }
 
+/*
 func (c *cpu) IncrementSP() {
 	c.registers.WriteSP(c.registers.ReadSP() + 0x02)
 }
@@ -72,6 +73,7 @@ func (c *cpu) IncrementSP() {
 func (c *cpu) DecrementSP() {
 	c.registers.WriteSP(c.registers.ReadSP() - 0x02)
 }
+*/
 
 func (c *cpu) IncrementPC(offset int) {
 	c.registers.WritePC(c.registers.ReadPC() + uint16(offset))

@@ -725,7 +725,7 @@ func (i *ldsphlInstruction) Execute(params Parameters) Addresser {
 	if err != nil {
 		fmt.Println(err)
 	}
-	i.regs.WriteSPImmediate(val)
+	i.regs.WriteSP(val)
 	return &address{}
 }
 
@@ -799,7 +799,7 @@ func (i *pushInstruction) Execute(params Parameters) Addresser {
 	if err != nil {
 		fmt.Println(err)
 	}
-	i.regs.WriteSP(val)
+	i.regs.PushSP(val)
 	return &address{}
 }
 
@@ -814,7 +814,7 @@ func (i *writeMemoryInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *popInstruction) Execute(params Parameters) Addresser {
-	stackValue := i.regs.ReadSP()
+	stackValue := i.regs.PopSP()
 	i.regs.WriteRegister(i.source1, byte((stackValue&0xFF00)>>8))
 	i.regs.WriteRegister(i.source2, byte(stackValue&0x00FF))
 	return &address{}
@@ -1151,7 +1151,7 @@ func (i *decInstruction) Execute(params Parameters) Addresser {
 // TODO: test this instruction with the debugger
 func (i *ldhlspInstruction) Execute(params Parameters) Addresser {
 	immediateValue := computeTwosComplement(uint8(params[0]))
-	spValue := int(i.regs.ReadSP())
+	spValue := int(i.regs.PopSP())
 	flags := 0
 	if immediateValue < 0 {
 		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
@@ -1173,7 +1173,7 @@ func (i *ldhlspInstruction) Execute(params Parameters) Addresser {
 
 func (i *addSP16BitInstruction) Execute(params Parameters) Addresser {
 	immediateValue := computeTwosComplement(uint8(params[0]))
-	spValue := int(i.regs.ReadSP())
+	spValue := int(i.regs.PopSP())
 	flags := 0
 
 	if immediateValue < 0 {
@@ -1196,7 +1196,7 @@ func (i *addSP16BitInstruction) Execute(params Parameters) Addresser {
 
 	}
 	spValue += immediateValue
-	i.regs.WriteSPImmediate(uint16(spValue))
+	i.regs.WriteSP(uint16(spValue))
 	i.regs.WriteRegister(f, uint8(flags))
 	return &address{}
 }
@@ -1213,7 +1213,7 @@ func (i *inc16BitInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *incSP16BitInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteSPImmediate(i.regs.ReadSP() + 1)
+	i.regs.WriteSP(i.regs.PopSP() + 1)
 	return &address{}
 }
 
@@ -1221,7 +1221,7 @@ func (i *add16BitFromSPInstruction) Execute(params Parameters) Addresser {
 	flags := i.regs.ReadRegister(f)
 	flags = flags & 0x80
 
-	spVal := i.regs.ReadSP()
+	spVal := i.regs.PopSP()
 	hlVal, err := i.regs.ReadRegisterPair(h, l)
 	if err != nil {
 		fmt.Println(err)
@@ -1257,7 +1257,7 @@ func (i *add16BitInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *decSP16BitInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteSPImmediate(i.regs.ReadSP() - 1)
+	i.regs.WriteSP(i.regs.PopSP() - 1)
 	return &address{}
 }
 
@@ -1359,14 +1359,14 @@ func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Address
 }
 
 func (i *callInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
 	newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
 	return &address{true, newPC}
 }
 
 func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
-		i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+		i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
 		newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
 		return &address{true, newPC}
 	}
@@ -1374,18 +1374,18 @@ func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *restartInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
 	return &address{true, 0x00 + i.offset}
 }
 
 func (i *returnInstruction) Execute(params Parameters) Addresser {
-	newPC := i.regs.ReadSP()
+	newPC := i.regs.PopSP()
 	return &address{true, newPC}
 }
 
 func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
-		newPC := i.regs.ReadSP()
+		newPC := i.regs.PopSP()
 		return &address{true, newPC}
 	}
 	return &address{}
@@ -1393,7 +1393,7 @@ func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
 
 func (i *retiInstruction) Execute(params Parameters) Addresser {
 	// Need to deal with enabling/disabling interrupts
-	newPC := i.regs.ReadSP()
+	newPC := i.regs.PopSP()
 	return &address{true, newPC}
 }
 
