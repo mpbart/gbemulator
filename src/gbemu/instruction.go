@@ -46,6 +46,11 @@ type loadTwoByteImmediateInstruction struct {
 	regs  Registers
 }
 
+type loadSpTwoByteImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
 type loadRegisterInstruction struct {
 	basicInstruction
 	dest   Register
@@ -112,6 +117,11 @@ type subInstruction struct {
 	regs   Registers
 }
 
+type subImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
 type subCarryInstruction struct {
 	basicInstruction
 	source Register
@@ -124,10 +134,20 @@ type andInstruction struct {
 	regs   Registers
 }
 
+type andImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
 type orInstruction struct {
 	basicInstruction
 	source Register
 	regs   Registers
+}
+
+type orImmediateInstruction struct {
+	basicInstruction
+	regs Registers
 }
 
 type xorInstruction struct {
@@ -136,10 +156,28 @@ type xorInstruction struct {
 	regs   Registers
 }
 
+type xorImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
 type cpInstruction struct {
 	basicInstruction
 	source Register
 	regs   Registers
+}
+
+type cpImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type cpFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
 }
 
 type incInstruction struct {
@@ -148,10 +186,26 @@ type incInstruction struct {
 	regs   Registers
 }
 
+type incFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
 type decInstruction struct {
 	basicInstruction
 	source Register
 	regs   Registers
+}
+
+type decFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
 }
 
 type add16BitInstruction struct {
@@ -314,6 +368,13 @@ type loadRegisterFromMemoryInstruction struct {
 	mmu     MMU
 }
 
+type loadImmediateRegisterFromMemoryInstruction struct {
+	basicInstruction
+	dest Register
+	regs Registers
+	mmu  MMU
+}
+
 type addFromMemoryInstruction struct {
 	basicInstruction
 	source1 Register
@@ -352,6 +413,14 @@ type addCarryImmediateInstruction struct {
 }
 
 type orFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type xorFromMemoryInstruction struct {
 	basicInstruction
 	source1 Register
 	source2 Register
@@ -429,18 +498,47 @@ type loadSpImmediateInstruction struct {
 	mmu  MMU
 }
 
+type rlcaInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type rlaInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type rrcaInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type rcaInstruction struct {
+	basicInstruction
+	regs Registers
+}
+
+type writeMemoryImmediateInstruction struct {
+	basicInstruction
+	regs Registers
+	mmu  MMU
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
-	// Opcodes to investigate how to handle: 0xEA,
-	// 0xF5, 0xC5, 0xD5, 0xE5, 0xF1, 0xC1, 0xD1, 0xE1, 0xE8 0xCBXX ?? WTF?!?
-	// 0x07, 0x17, 0x0F, 0x1F
+	// Opcodes to investigate how to handle: 0xCBXX ?? WTF?!?
 	return map[byte]Instruction{
 		0x00: &noopInstruction{basicInstruction{1, 0}},
 
 		0x06: &loadImmediateInstruction{basicInstruction{8, 1}, b, regs},
+		0x3E: &loadImmediateInstruction{basicInstruction{8, 1}, a, regs},
+		0x07: &rlcaInstruction{basicInstruction{4, 0}, regs},
 		0x08: &loadSpImmediateInstruction{basicInstruction{20, 2}, regs, mmu},
 		0x0E: &loadImmediateInstruction{basicInstruction{8, 1}, c, regs},
+		0x0F: &rrcaInstruction{basicInstruction{4, 0}, regs},
 		0x16: &loadImmediateInstruction{basicInstruction{8, 1}, d, regs},
+		0x17: &rlaInstruction{basicInstruction{4, 0}, regs},
 		0x1E: &loadImmediateInstruction{basicInstruction{8, 1}, e, regs},
+		0x1F: &rcaInstruction{basicInstruction{4, 0}, regs},
 		0x26: &loadImmediateInstruction{basicInstruction{8, 1}, h, regs},
 		0x2E: &loadImmediateInstruction{basicInstruction{8, 1}, l, regs},
 
@@ -516,6 +614,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x02: &writeMemoryInstruction{basicInstruction{8, 0}, b, c, a, regs, mmu},
 		0x12: &writeMemoryInstruction{basicInstruction{8, 0}, d, e, a, regs, mmu},
 		0x77: &writeMemoryInstruction{basicInstruction{8, 0}, h, l, a, regs, mmu},
+		0xFA: &loadImmediateRegisterFromMemoryInstruction{basicInstruction{16, 2}, a, regs, mmu},
 		0x0A: &loadRegisterFromMemoryInstruction{basicInstruction{8, 0}, b, c, a, regs, mmu},
 		0x1A: &loadRegisterFromMemoryInstruction{basicInstruction{8, 0}, d, e, a, regs, mmu},
 		0x7E: &loadRegisterFromMemoryInstruction{basicInstruction{8, 0}, h, l, a, regs, mmu},
@@ -526,8 +625,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x01: &loadTwoByteImmediateInstruction{basicInstruction{12, 2}, b, c, regs},
 		0x11: &loadTwoByteImmediateInstruction{basicInstruction{12, 2}, d, e, regs},
 		0x21: &loadTwoByteImmediateInstruction{basicInstruction{12, 2}, h, l, regs},
-		// TODO: This is really hacky, fix it
-		// 0x31: &loadTwoByteImmediateInstruction{12, 2, sp, sp, regs},
+		0x31: &loadSpTwoByteImmediateInstruction{basicInstruction{12, 2}, regs},
 
 		0xF5: &pushInstruction{basicInstruction{16, 0}, a, f, regs},
 		0xF8: &ldhlspInstruction{basicInstruction{12, 1}, h, l, regs},
@@ -567,7 +665,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x94: &subInstruction{basicInstruction{4, 0}, h, regs},
 		0x95: &subInstruction{basicInstruction{4, 0}, l, regs},
 		0x96: &subFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
-		// ??? 0xD6: &subInstruction{8, 1, a, regs},
+		0xD6: &subImmediateInstruction{basicInstruction{8, 1}, regs},
 		0x9F: &subCarryInstruction{basicInstruction{4, 0}, a, regs},
 		0x98: &subCarryInstruction{basicInstruction{4, 0}, b, regs},
 		0x99: &subCarryInstruction{basicInstruction{4, 0}, c, regs},
@@ -584,7 +682,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xA4: &andInstruction{basicInstruction{4, 0}, h, regs},
 		0xA5: &andInstruction{basicInstruction{4, 0}, l, regs},
 		0xA6: &andFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
-		// ??? 0xE6: &andInstruction{8, 1, nil??, regs},
+		0xE6: &andImmediateInstruction{basicInstruction{8, 1}, regs},
 		0xB7: &orInstruction{basicInstruction{4, 0}, a, regs},
 		0xB0: &orInstruction{basicInstruction{4, 0}, b, regs},
 		0xB1: &orInstruction{basicInstruction{4, 0}, c, regs},
@@ -593,7 +691,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xB4: &orInstruction{basicInstruction{4, 0}, h, regs},
 		0xB5: &orInstruction{basicInstruction{4, 0}, l, regs},
 		0xB6: &orFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
-		// ?? 0xF6: &orInstruction{8, 1, nil??, regs},
+		0xF6: &orImmediateInstruction{basicInstruction{8, 1}, regs},
 		0xAF: &xorInstruction{basicInstruction{4, 0}, a, regs},
 		0xA8: &xorInstruction{basicInstruction{4, 0}, b, regs},
 		0xA9: &xorInstruction{basicInstruction{4, 0}, c, regs},
@@ -601,8 +699,8 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xAB: &xorInstruction{basicInstruction{4, 0}, e, regs},
 		0xAC: &xorInstruction{basicInstruction{4, 0}, h, regs},
 		0xAD: &xorInstruction{basicInstruction{4, 0}, l, regs},
-		// ?? 0xAE: &xorInstruction{8, 0, hl, regs},
-		// ?? 0xEE: &xorInstruction{8, 1, nil??, regs},
+		0xAE: &xorFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
+		0xEE: &xorImmediateInstruction{basicInstruction{8, 1}, regs},
 		0xBF: &cpInstruction{basicInstruction{4, 0}, a, regs},
 		0xB8: &cpInstruction{basicInstruction{4, 0}, b, regs},
 		0xB9: &cpInstruction{basicInstruction{4, 0}, c, regs},
@@ -610,8 +708,8 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xBB: &cpInstruction{basicInstruction{4, 0}, e, regs},
 		0xBC: &cpInstruction{basicInstruction{4, 0}, h, regs},
 		0xBD: &cpInstruction{basicInstruction{4, 0}, l, regs},
-		// ?? 0xBE: &cpInstruction{8, 0, hl, regs},
-		// ?? 0xFE: &cpInstruction{8, 1, nil??, regs},
+		0xBE: &cpFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
+		0xFE: &cpImmediateInstruction{basicInstruction{8, 1}, regs},
 		0x3C: &incInstruction{basicInstruction{4, 0}, a, regs},
 		0x04: &incInstruction{basicInstruction{4, 0}, b, regs},
 		0x0C: &incInstruction{basicInstruction{4, 0}, c, regs},
@@ -619,7 +717,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x1C: &incInstruction{basicInstruction{4, 0}, e, regs},
 		0x24: &incInstruction{basicInstruction{4, 0}, h, regs},
 		0x2C: &incInstruction{basicInstruction{4, 0}, l, regs},
-		// ?? 0x34: &incInstruction{12, 0, hl, regs},
+		0x34: &incFromMemoryInstruction{basicInstruction{12, 0}, h, l, regs, mmu},
 		0x3D: &decInstruction{basicInstruction{4, 0}, a, regs},
 		0x05: &decInstruction{basicInstruction{4, 0}, b, regs},
 		0x0D: &decInstruction{basicInstruction{4, 0}, c, regs},
@@ -627,7 +725,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x1D: &decInstruction{basicInstruction{4, 0}, e, regs},
 		0x25: &decInstruction{basicInstruction{4, 0}, h, regs},
 		0x2D: &decInstruction{basicInstruction{4, 0}, l, regs},
-		// ?? 0x35: &decInstruction{12, 0, hl, regs},
+		0x35: &decFromMemoryInstruction{basicInstruction{12, 0}, h, l, regs, mmu},
 		0x09: &add16BitInstruction{basicInstruction{8, 0}, b, c, regs},
 		0x19: &add16BitInstruction{basicInstruction{8, 0}, d, e, regs},
 		0x29: &add16BitInstruction{basicInstruction{8, 0}, h, l, regs},
@@ -641,13 +739,13 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x1B: &dec16BitInstruction{basicInstruction{8, 0}, d, e, regs},
 		0x2B: &dec16BitInstruction{basicInstruction{8, 0}, h, l, regs},
 		0x3B: &decSP16BitInstruction{basicInstruction{8, 0}, regs},
-		// ?? 0x37: &swapInstruction{8, 0, a, regs},
+		// ?? 0xCB37: &swapInstruction{8, 0, a, regs},
 		0x27: &daaInstruction{basicInstruction{4, 0}, regs},
 		0x2F: &cplInstruction{basicInstruction{4, 0}, regs},
-		// ?? 0x3F: &ccfInstruction{4, 0 regs},
-		// ?? 0x37: &scfInstruction{4, 0, regs},
+		0x3F: &ccfInstruction{basicInstruction{4, 0}, regs},
+		0x37: &scfInstruction{basicInstruction{4, 0}, regs},
 		0x76: &haltInstruction{basicInstruction{4, 0}},
-		// ?? 0x1000: &stopInstruction{4, 0},
+		0x10: &stopInstruction{basicInstruction{4, 1}}, // stop is actually 0x10 00 but This is a hack since I handle all opcodes as 1 byte values
 		0xF3: &diInstruction{basicInstruction{4, 0}},
 		0xFB: &eiInstruction{basicInstruction{4, 0}},
 		0xC3: &jumpInstruction{basicInstruction{12, 2}},
@@ -680,6 +778,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xD0: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
 		0xD8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xD9: &retiInstruction{basicInstruction{8, 0}, regs},
+		0xEA: &writeMemoryImmediateInstruction{basicInstruction{16, 2}, regs, mmu},
 	}
 }
 
@@ -732,6 +831,11 @@ func (i *loadSpImmediateInstruction) Execute(params Parameters) Addresser {
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 	i.regs.WriteRegister(i.dest1, params[0])
 	i.regs.WriteRegister(i.dest2, params[1])
+	return &address{}
+}
+
+func (i *loadSpTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
+	i.regs.WriteSP(uint16(params[0])<<8 + uint16(params[1]))
 	return &address{}
 }
 
@@ -809,12 +913,25 @@ func (i *loadRegisterFromMemoryInstruction) Execute(params Parameters) Addresser
 	return &address{}
 }
 
+func (i *loadImmediateRegisterFromMemoryInstruction) Execute(params Parameters) Addresser {
+	memVal := i.mmu.ReadAt(uint16(params[0])<<8 + uint16(params[1]))
+	i.regs.WriteRegister(i.dest, memVal)
+	return &address{}
+}
+
 func (i *pushInstruction) Execute(params Parameters) Addresser {
 	val, err := i.regs.ReadRegisterPair(i.source1, i.source2)
 	if err != nil {
 		fmt.Println(err)
 	}
 	i.regs.PushSP(val)
+	return &address{}
+}
+
+func (i *writeMemoryImmediateInstruction) Execute(params Parameters) Addresser {
+	addr := uint16(params[0])<<8 + uint16(params[1])
+	val := i.regs.ReadRegister(a)
+	i.mmu.WriteByte(addr, val)
 	return &address{}
 }
 
@@ -832,6 +949,73 @@ func (i *popInstruction) Execute(params Parameters) Addresser {
 	stackValue := i.regs.PopSP()
 	i.regs.WriteRegister(i.source1, byte((stackValue&0xFF00)>>8))
 	i.regs.WriteRegister(i.source2, byte(stackValue&0x00FF))
+	return &address{}
+}
+
+func (i *rlcaInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	var flags byte
+	flags = 0
+	sevenBit := (aValue & 0x80) == 0x80
+	aValue = aValue << 1
+	if sevenBit {
+		flags += 0x01
+		aValue += 0x10
+	}
+	i.regs.WriteRegister(a, aValue)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *rlaInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	carryBit := (i.regs.ReadRegister(f) & 0x01) == 0x01
+	sevenBit := (aValue & 0x80) == 0x80
+	var flags byte
+	flags = 0
+
+	aValue = aValue << 1
+	if sevenBit {
+		flags += 0x01
+	}
+	if carryBit {
+		aValue += 0x10
+	}
+	i.regs.WriteRegister(a, aValue)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *rrcaInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	var flags byte
+	flags = 0
+	zeroBit := (aValue & 0x10) == 0x10
+	aValue = aValue >> 1
+	if zeroBit {
+		flags += 0x01
+		aValue += 0x80
+	}
+	i.regs.WriteRegister(a, aValue)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *rcaInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	carryBit := (i.regs.ReadRegister(f) & 0x01) == 0x01
+	zeroBit := (aValue & 0x10) == 0x10
+	var flags byte
+	flags = 0
+	if zeroBit {
+		flags += 0x01
+	}
+	if carryBit {
+		aValue += 0x80
+	}
+
+	i.regs.WriteRegister(a, aValue)
+	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
 
@@ -1029,6 +1213,26 @@ func (i *subInstruction) Execute(params Parameters) Addresser {
 	return &address{}
 }
 
+func (i *subImmediateInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	subtractor := params[0]
+	aValue := i.regs.ReadRegister(a)
+	result := aValue - subtractor
+	flags = 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if result&0xFF == 0xFF {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(a, result)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
 func (i *subCarryInstruction) Execute(params Parameters) Addresser {
 	flags := i.regs.ReadRegister(f)
 	subtractor := i.regs.ReadRegister(i.source)
@@ -1051,6 +1255,17 @@ func (i *subCarryInstruction) Execute(params Parameters) Addresser {
 
 func (i *andInstruction) Execute(params Parameters) Addresser {
 	result := i.regs.ReadRegister(a) & i.regs.ReadRegister(i.source)
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
+	return &address{}
+}
+
+func (i *andImmediateInstruction) Execute(params Parameters) Addresser {
+	result := i.regs.ReadRegister(a) & params[0]
 	flags := 0
 	if result == 0 {
 		flags = 0x80
@@ -1092,8 +1307,35 @@ func (i *orFromMemoryInstruction) Execute(params Parameters) Addresser {
 	return &address{}
 }
 
+func (i *xorFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+	result := i.regs.ReadRegister(a) ^ val
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
+	return &address{}
+}
+
 func (i *orInstruction) Execute(params Parameters) Addresser {
 	result := i.regs.ReadRegister(a) | i.regs.ReadRegister(i.source)
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
+	return &address{}
+}
+
+func (i *orImmediateInstruction) Execute(params Parameters) Addresser {
+	result := i.regs.ReadRegister(a) | params[0]
 	flags := 0
 	if result == 0 {
 		flags = 0x80
@@ -1114,9 +1356,63 @@ func (i *xorInstruction) Execute(params Parameters) Addresser {
 	return &address{}
 }
 
+func (i *xorImmediateInstruction) Execute(params Parameters) Addresser {
+	result := i.regs.ReadRegister(a) ^ params[0]
+	flags := 0
+	if result == 0 {
+		flags = 0x80
+	}
+	i.regs.WriteRegister(f, byte(flags))
+	i.regs.WriteRegister(a, result)
+	return &address{}
+}
+
 func (i *cpInstruction) Execute(params Parameters) Addresser {
 	aValue := i.regs.ReadRegister(a)
 	otherValue := i.regs.ReadRegister(i.source)
+	result := aValue - otherValue
+	flags := i.regs.ReadRegister(f)
+	flags = flags | 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if aValue < otherValue {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *cpImmediateInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	otherValue := params[0]
+	result := aValue - otherValue
+	flags := i.regs.ReadRegister(f)
+	flags = flags | 0x40
+	if result == 0 {
+		flags += 0x80
+	}
+	if result&0x0F == 0x0F {
+		flags += 0x20
+	}
+	if aValue < otherValue {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *cpFromMemoryInstruction) Execute(params Parameters) Addresser {
+	aValue := i.regs.ReadRegister(a)
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	otherValue := i.mmu.ReadAt(addr)
 	result := aValue - otherValue
 	flags := i.regs.ReadRegister(f)
 	flags = flags | 0x40
@@ -1148,6 +1444,26 @@ func (i *incInstruction) Execute(params Parameters) Addresser {
 	return &address{}
 }
 
+func (i *incFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	newValue := i.mmu.ReadAt(addr) + 1
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x10
+	if newValue == 0 {
+		flags += 0x80
+	}
+	if newValue&0x0F == 0 {
+		flags += 0x20
+	}
+	i.mmu.WriteByte(addr, newValue)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
 func (i *decInstruction) Execute(params Parameters) Addresser {
 	newValue := i.regs.ReadRegister(i.source) - 1
 	flags := i.regs.ReadRegister(f)
@@ -1159,6 +1475,26 @@ func (i *decInstruction) Execute(params Parameters) Addresser {
 		flags += 0x20
 	}
 	i.regs.WriteRegister(i.source, newValue)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *decFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	newValue := i.mmu.ReadAt(addr) - 1
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x10
+	if newValue == 0 {
+		flags += 0x80
+	}
+	if newValue&0x0F == 0 {
+		flags += 0x20
+	}
+	i.mmu.WriteByte(addr, newValue)
 	i.regs.WriteRegister(f, flags)
 	return &address{}
 }
@@ -1410,6 +1746,22 @@ func (i *retiInstruction) Execute(params Parameters) Addresser {
 	// Need to deal with enabling/disabling interrupts
 	newPC := i.regs.PopSP()
 	return &address{true, newPC}
+}
+
+func (i *ccfInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x90
+	flags = flags ^ 0x10
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *scfInstruction) Execute(params Parameters) Addresser {
+	flags := i.regs.ReadRegister(f)
+	flags = flags & 0x90
+	flags += 0x10
+	i.regs.WriteRegister(f, flags)
+	return &address{}
 }
 
 func computeTwosComplement(number uint8) int {
