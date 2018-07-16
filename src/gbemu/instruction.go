@@ -251,12 +251,6 @@ type decSP16BitInstruction struct {
 	regs Registers
 }
 
-type swapInstruction struct {
-	basicInstruction
-	source Register
-	regs   Registers
-}
-
 type daaInstruction struct {
 	basicInstruction
 	regs Registers
@@ -526,6 +520,10 @@ type writeMemoryImmediateInstruction struct {
 	mmu  MMU
 }
 
+type extendedInstruction struct {
+	extendedInstructions map[byte]ExtendedInstruction
+}
+
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 	// Opcodes to investigate how to handle: 0xCBXX ?? WTF?!?
 	return map[byte]Instruction{
@@ -741,7 +739,6 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x1B: &dec16BitInstruction{basicInstruction{8, 0}, d, e, regs},
 		0x2B: &dec16BitInstruction{basicInstruction{8, 0}, h, l, regs},
 		0x3B: &decSP16BitInstruction{basicInstruction{8, 0}, regs},
-		// ?? 0xCB37: &swapInstruction{8, 0, a, regs},
 		0x27: &daaInstruction{basicInstruction{4, 0}, regs},
 		0x2F: &cplInstruction{basicInstruction{4, 0}, regs},
 		0x3F: &ccfInstruction{basicInstruction{4, 0}, regs},
@@ -781,6 +778,7 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0xD8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xD9: &retiInstruction{basicInstruction{8, 0}, regs},
 		0xEA: &writeMemoryImmediateInstruction{basicInstruction{16, 2}, regs, mmu},
+		0xCB: &extendedInstruction{CreateExtendedInstructions(regs, mmu)},
 	}
 }
 
@@ -1768,6 +1766,14 @@ func (i *scfInstruction) Execute(params Parameters) Addresser {
 	flags += 0x10
 	i.regs.WriteRegister(f, flags)
 	return &address{}
+}
+
+func (i *extendedInstruction) GetNumParameterBytes() int {
+	return 1
+}
+
+func (i *extendedInstruction) Execute(params Parameters) Addresser {
+	return i.extendedInstructions[params[0]].Execute(params)
 }
 
 func computeTwosComplement(number uint8) int {
