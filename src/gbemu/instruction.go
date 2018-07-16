@@ -7,11 +7,13 @@ type Parameters []byte
 type Addresser interface {
 	ShouldJump() bool
 	NewAddress() uint16
+	IsStopped() bool
 }
 
 type address struct {
 	pcShouldJump bool
 	newAddress   uint16
+	stopped      bool
 }
 
 type Instruction interface {
@@ -790,6 +792,10 @@ func (a *address) ShouldJump() bool {
 
 func (a *address) NewAddress() uint16 {
 	return a.newAddress
+}
+
+func (a *address) IsStopped() bool {
+	return a.stopped
 }
 
 func (i *basicInstruction) GetNumParameterBytes() int {
@@ -1663,7 +1669,7 @@ func (i *haltInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *stopInstruction) Execute(params Parameters) Addresser {
-	return &address{}
+	return &address{false, 0, true}
 }
 
 func (i *diInstruction) Execute(params Parameters) Addresser {
@@ -1676,13 +1682,13 @@ func (i *eiInstruction) Execute(params Parameters) Addresser {
 
 func (i *jumpInstruction) Execute(params Parameters) Addresser {
 	newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *conditionalJumpInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
 		newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
-		return &address{true, newPC}
+		return &address{true, newPC, false}
 	}
 	return &address{}
 }
@@ -1693,18 +1699,18 @@ func (i *jumpHlInstruction) Execute(params Parameters) Addresser {
 		fmt.Println("Error occured when attempting to execute jump HL instruction: ", err)
 		return &address{}
 	}
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *jumpImmediateInstruction) Execute(params Parameters) Addresser {
 	newPC := i.regs.ReadPC() + uint16(params[0])
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
 		newPC := i.regs.ReadPC() + uint16(params[0])
-		return &address{true, newPC}
+		return &address{true, newPC, false}
 	}
 	return &address{}
 }
@@ -1712,32 +1718,32 @@ func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Address
 func (i *callInstruction) Execute(params Parameters) Addresser {
 	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
 	newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
 		i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
 		newPC := (uint16(params[1]) << 0xFF) + uint16(params[0])
-		return &address{true, newPC}
+		return &address{true, newPC, false}
 	}
 	return &address{}
 }
 
 func (i *restartInstruction) Execute(params Parameters) Addresser {
 	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
-	return &address{true, 0x00 + i.offset}
+	return &address{true, 0x00 + i.offset, false}
 }
 
 func (i *returnInstruction) Execute(params Parameters) Addresser {
 	newPC := i.regs.PopSP()
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
 		newPC := i.regs.PopSP()
-		return &address{true, newPC}
+		return &address{true, newPC, false}
 	}
 	return &address{}
 }
@@ -1745,7 +1751,7 @@ func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
 func (i *retiInstruction) Execute(params Parameters) Addresser {
 	// Need to deal with enabling/disabling interrupts
 	newPC := i.regs.PopSP()
-	return &address{true, newPC}
+	return &address{true, newPC, false}
 }
 
 func (i *ccfInstruction) Execute(params Parameters) Addresser {

@@ -11,6 +11,7 @@ type cpu struct {
 	mmu          MMU
 	registers    Registers
 	instructions map[byte]Instruction
+	stopped      bool
 }
 
 func CreateCPU(mmu MMU) CPU {
@@ -20,6 +21,7 @@ func CreateCPU(mmu MMU) CPU {
 		mmu:          mmu,
 		registers:    registers,
 		instructions: CreateInstructions(registers, mmu),
+		stopped:      false,
 	}
 }
 
@@ -63,6 +65,8 @@ func (cpu *cpu) Reset() {
 	cpu.mmu.WriteByte(0xFF4B, 0x00)
 	cpu.mmu.WriteByte(0xFF50, 0x00)
 	cpu.mmu.WriteByte(0xFFFF, 0x00)
+
+	cpu.stopped = false
 }
 
 /*
@@ -81,6 +85,12 @@ func (c *cpu) IncrementPC(offset int) {
 
 func (c *cpu) Run(exitChannel chan bool) {
 	for {
+
+		// Don't execute any more instructions until a key press event happens
+		if c.stopped {
+			return
+		}
+
 		opcode := c.getNextInstruction()
 		instruction, found := c.instructions[opcode]
 
@@ -105,6 +115,10 @@ func (c *cpu) Run(exitChannel chan bool) {
 			c.registers.WritePC(result.NewAddress())
 		} else {
 			c.IncrementPC(paramBytes + 1)
+		}
+
+		if result.IsStopped() {
+			c.stopped = true
 		}
 	}
 }
