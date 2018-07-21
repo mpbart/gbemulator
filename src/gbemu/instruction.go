@@ -963,8 +963,8 @@ func (i *rlcaInstruction) Execute(params Parameters) Addresser {
 	sevenBit := (aValue & 0x80) == 0x80
 	aValue = aValue << 1
 	if sevenBit {
-		flags += 0x01
-		aValue += 0x10
+		flags += 0x10
+		aValue += 0x01
 	}
 	i.regs.WriteRegister(a, aValue)
 	i.regs.WriteRegister(f, flags)
@@ -980,10 +980,10 @@ func (i *rlaInstruction) Execute(params Parameters) Addresser {
 
 	aValue = aValue << 1
 	if sevenBit {
-		flags += 0x01
+		flags += 0x10
 	}
 	if carryBit {
-		aValue += 0x10
+		aValue += 0x01
 	}
 	i.regs.WriteRegister(a, aValue)
 	i.regs.WriteRegister(f, flags)
@@ -997,7 +997,7 @@ func (i *rrcaInstruction) Execute(params Parameters) Addresser {
 	zeroBit := (aValue & 0x10) == 0x10
 	aValue = aValue >> 1
 	if zeroBit {
-		flags += 0x01
+		flags += 0x10
 		aValue += 0x80
 	}
 	i.regs.WriteRegister(a, aValue)
@@ -1012,7 +1012,7 @@ func (i *rcaInstruction) Execute(params Parameters) Addresser {
 	var flags byte
 	flags = 0
 	if zeroBit {
-		flags += 0x01
+		flags += 0x10
 	}
 	if carryBit {
 		aValue += 0x80
@@ -1510,14 +1510,14 @@ func (i *ldhlspInstruction) Execute(params Parameters) Addresser {
 	flags := 0
 	if immediateValue < 0 {
 		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
-			flags += 1
+			flags += 0x10
 		}
 	} else {
 		if ((spValue + immediateValue) & 0xFF) < (spValue & 0xFF) {
-			flags += 1 // set c flag
+			flags += 0x10 // set c flag
 		}
 		if ((spValue + immediateValue) & 0x0F) < (spValue & 0x0F) {
-			flags += 2 // set h flag
+			flags += 0x20 // set h flag
 		}
 	}
 	spValue += immediateValue
@@ -1533,20 +1533,20 @@ func (i *addSP16BitInstruction) Execute(params Parameters) Addresser {
 
 	if immediateValue < 0 {
 		if ((spValue + immediateValue) & 0xFF) > (spValue & 0xFF) {
-			flags += 1 // set c flag
+			flags += 0x10 // set c flag
 		}
 		// TODO: based on behavior from the debugger I am currently using it doesn't
 		// look like this needs to be set when subtracting????
 		//	if ((spValue + immediateValue) & 0x0F) > (spValue & 0x0F) {
-		//		flags += 2 // set h flag
+		//		flags += 0x20 // set h flag
 		//	}
 
 	} else {
 		if ((spValue + immediateValue) & 0xFF) < (spValue & 0xFF) {
-			flags += 1 // set c flag
+			flags += 0x10 // set c flag
 		}
 		if ((spValue + immediateValue) & 0x0F) < (spValue & 0x0F) {
-			flags += 2 // set h flag
+			flags += 0x20 // set h flag
 		}
 
 	}
@@ -1583,7 +1583,7 @@ func (i *add16BitFromSPInstruction) Execute(params Parameters) Addresser {
 	}
 
 	if spVal+hlVal < hlVal {
-		flags += 3
+		flags += 0x30
 	}
 	i.regs.WriteRegisterPair(h, l, hlVal+spVal)
 	i.regs.WriteRegister(f, flags)
@@ -1604,7 +1604,7 @@ func (i *add16BitInstruction) Execute(params Parameters) Addresser {
 	}
 
 	if val+hlVal < hlVal {
-		flags += 3
+		flags += 0x30
 	}
 	i.regs.WriteRegisterPair(h, l, val+hlVal)
 	i.regs.WriteRegister(f, flags)
@@ -1642,13 +1642,13 @@ func (i *daaInstruction) Execute(params Parameters) Addresser {
 
 	if ((aValue&0xF0)>>4) > 9 || (aValue == 0 && carryPerformed) || (flagValue&0x10) == 0x10 {
 		if aValue+0x60 < aValue { // Check for overflow of upper 4 bits
-			flags += 1
+			flags += 0x10
 		}
 		aValue = aValue + 0x60
 	}
 
 	if aValue == 0 {
-		flags += 8
+		flags += 0x80
 	}
 	i.regs.WriteRegister(a, aValue)
 	i.regs.WriteRegister(f, flags)
