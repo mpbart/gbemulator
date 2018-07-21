@@ -1009,6 +1009,8 @@ func (i *rcaInstruction) Execute(params Parameters) Addresser {
 	aValue := i.regs.ReadRegister(a)
 	carryBit := (i.regs.ReadRegister(f) & 0x01) == 0x01
 	zeroBit := (aValue & 0x10) == 0x10
+	aValue = aValue >> 1
+
 	var flags byte
 	flags = 0
 	if zeroBit {
