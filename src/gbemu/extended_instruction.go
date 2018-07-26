@@ -77,6 +77,20 @@ type rrFromMemoryInstruction struct {
 	mmu     MMU
 }
 
+type slaInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type slaFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
 func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstruction {
 	return map[byte]ExtendedInstruction{
 		0x30: &swapInstruction{basicInstruction{8, 0}, b, regs},
@@ -119,6 +133,14 @@ func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstru
 		0x1D: &rrInstruction{basicInstruction{8, 0}, l, regs},
 		0x1E: &rrFromMemoryInstruction{basicInstruction{8, 0}, h, l, regs, mmu},
 		0x1F: &rrInstruction{basicInstruction{8, 0}, a, regs},
+		0x20: &slaInstruction{basicInstruction{8, 0}, b, regs},
+		0x21: &slaInstruction{basicInstruction{8, 0}, c, regs},
+		0x22: &slaInstruction{basicInstruction{8, 0}, d, regs},
+		0x23: &slaInstruction{basicInstruction{8, 0}, e, regs},
+		0x24: &slaInstruction{basicInstruction{8, 0}, h, regs},
+		0x25: &slaInstruction{basicInstruction{8, 0}, l, regs},
+		0x26: &slaFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
+		0x27: &slaInstruction{basicInstruction{8, 0}, a, regs},
 	}
 }
 
@@ -318,6 +340,47 @@ func (i *rrFromMemoryInstruction) Execute(params Parameters) Addresser {
 		val += 0x80
 	}
 
+	i.mmu.WriteByte(addr, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *slaInstruction) Execute(params Parameters) Addresser {
+	val := i.regs.ReadRegister(i.source)
+	lsb := (val & 0x80) == 0x80
+	val = val << 1
+
+	var flags byte
+	flags = 0
+	if lsb {
+		flags += 0x10
+	}
+	if val == 0 {
+		flags += 0x80
+	}
+	i.regs.WriteRegister(i.source, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *slaFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	val := i.mmu.ReadAt(addr)
+	lsb := (val & 0x80) == 0x80
+	val = val << 1
+
+	var flags byte
+	flags = 0
+	if lsb {
+		flags += 0x10
+	}
+	if val == 0 {
+		flags += 0x80
+	}
 	i.mmu.WriteByte(addr, val)
 	i.regs.WriteRegister(f, flags)
 	return &address{}
