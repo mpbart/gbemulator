@@ -91,16 +91,36 @@ type slaFromMemoryInstruction struct {
 	mmu     MMU
 }
 
+type sraInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type sraFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type srlInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type srlFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
 func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstruction {
 	return map[byte]ExtendedInstruction{
-		0x30: &swapInstruction{basicInstruction{8, 0}, b, regs},
-		0x31: &swapInstruction{basicInstruction{8, 0}, c, regs},
-		0x32: &swapInstruction{basicInstruction{8, 0}, d, regs},
-		0x33: &swapInstruction{basicInstruction{8, 0}, e, regs},
-		0x34: &swapInstruction{basicInstruction{8, 0}, h, regs},
-		0x35: &swapInstruction{basicInstruction{8, 0}, l, regs},
-		0x36: &swapFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
-		0x37: &swapInstruction{basicInstruction{8, 0}, a, regs},
 		0x00: &rlcInstruction{basicInstruction{8, 0}, b, regs},
 		0x01: &rlcInstruction{basicInstruction{8, 0}, c, regs},
 		0x02: &rlcInstruction{basicInstruction{8, 0}, d, regs},
@@ -141,6 +161,30 @@ func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstru
 		0x25: &slaInstruction{basicInstruction{8, 0}, l, regs},
 		0x26: &slaFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
 		0x27: &slaInstruction{basicInstruction{8, 0}, a, regs},
+		0x28: &sraInstruction{basicInstruction{8, 0}, b, regs},
+		0x29: &sraInstruction{basicInstruction{8, 0}, c, regs},
+		0x2A: &sraInstruction{basicInstruction{8, 0}, d, regs},
+		0x2B: &sraInstruction{basicInstruction{8, 0}, e, regs},
+		0x2C: &sraInstruction{basicInstruction{8, 0}, h, regs},
+		0x2D: &sraInstruction{basicInstruction{8, 0}, l, regs},
+		0x2E: &sraFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
+		0x2F: &sraInstruction{basicInstruction{8, 0}, a, regs},
+		0x30: &swapInstruction{basicInstruction{8, 0}, b, regs},
+		0x31: &swapInstruction{basicInstruction{8, 0}, c, regs},
+		0x32: &swapInstruction{basicInstruction{8, 0}, d, regs},
+		0x33: &swapInstruction{basicInstruction{8, 0}, e, regs},
+		0x34: &swapInstruction{basicInstruction{8, 0}, h, regs},
+		0x35: &swapInstruction{basicInstruction{8, 0}, l, regs},
+		0x36: &swapFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
+		0x37: &swapInstruction{basicInstruction{8, 0}, a, regs},
+		0x38: &srlInstruction{basicInstruction{8, 0}, b, regs},
+		0x39: &srlInstruction{basicInstruction{8, 0}, c, regs},
+		0x3A: &srlInstruction{basicInstruction{8, 0}, d, regs},
+		0x3B: &srlInstruction{basicInstruction{8, 0}, e, regs},
+		0x3C: &srlInstruction{basicInstruction{8, 0}, h, regs},
+		0x3D: &srlInstruction{basicInstruction{8, 0}, l, regs},
+		0x3E: &srlFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
+		0x3F: &srlInstruction{basicInstruction{8, 0}, a, regs},
 	}
 }
 
@@ -381,6 +425,94 @@ func (i *slaFromMemoryInstruction) Execute(params Parameters) Addresser {
 	if val == 0 {
 		flags += 0x80
 	}
+	i.mmu.WriteByte(addr, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *sraInstruction) Execute(params Parameters) Addresser {
+	val := i.regs.ReadRegister(i.source)
+	msb := val | 0x80
+	zeroBit := (val & 0x10) == 0x10
+	val = val >> 1
+	val = val + msb
+
+	var flags byte
+	flags = 0
+	if val == 0 {
+		flags += 0x80
+	}
+	if zeroBit {
+		flags += 0x10
+	}
+	i.regs.WriteRegister(i.source, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *sraFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	val := i.mmu.ReadAt(addr)
+	msb := val | 0x80
+	zeroBit := (val & 0x10) == 0x10
+	val = val >> 1
+	val = val + msb
+
+	var flags byte
+	flags = 0
+	if val == 0 {
+		flags += 0x80
+	}
+	if zeroBit {
+		flags += 0x10
+	}
+	i.mmu.WriteByte(addr, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *srlInstruction) Execute(params Parameters) Addresser {
+	val := i.regs.ReadRegister(i.source)
+	zeroBit := (val & 0x10) == 0x10
+	val = val >> 1
+
+	var flags byte
+	flags = 0
+	if zeroBit {
+		flags += 0x10
+	}
+	if val == 0 {
+		flags += 0x80
+	}
+
+	i.regs.WriteRegister(i.source, val)
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *srlFromMemoryInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	val := i.mmu.ReadAt(addr)
+	zeroBit := (val & 0x10) == 0x10
+	val = val >> 1
+
+	var flags byte
+	flags = 0
+	if zeroBit {
+		flags += 0x10
+	}
+	if val == 0 {
+		flags += 0x80
+	}
+
 	i.mmu.WriteByte(addr, val)
 	i.regs.WriteRegister(f, flags)
 	return &address{}
