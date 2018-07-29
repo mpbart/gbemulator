@@ -525,7 +525,6 @@ type extendedInstruction struct {
 }
 
 func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
-	// Opcodes to investigate how to handle: 0xCBXX ?? WTF?!?
 	return map[byte]Instruction{
 		0x00: &noopInstruction{basicInstruction{1, 0}},
 

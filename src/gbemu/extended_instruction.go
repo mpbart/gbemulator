@@ -119,6 +119,48 @@ type srlFromMemoryInstruction struct {
 	mmu     MMU
 }
 
+type bitInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type bitFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type setInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type setFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
+type resetInstruction struct {
+	basicInstruction
+	source Register
+	regs   Registers
+}
+
+type resetFromMemoryInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
 func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstruction {
 	return map[byte]ExtendedInstruction{
 		0x00: &rlcInstruction{basicInstruction{8, 0}, b, regs},
@@ -185,6 +227,30 @@ func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstru
 		0x3D: &srlInstruction{basicInstruction{8, 0}, l, regs},
 		0x3E: &srlFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
 		0x3F: &srlInstruction{basicInstruction{8, 0}, a, regs},
+		0x40: &bitInstruction{basicInstruction{8, 1}, b, regs},
+		0x41: &bitInstruction{basicInstruction{8, 1}, c, regs},
+		0x42: &bitInstruction{basicInstruction{8, 1}, d, regs},
+		0x43: &bitInstruction{basicInstruction{8, 1}, e, regs},
+		0x44: &bitInstruction{basicInstruction{8, 1}, h, regs},
+		0x45: &bitInstruction{basicInstruction{8, 1}, l, regs},
+		0x46: &bitFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
+		0x47: &bitInstruction{basicInstruction{8, 1}, a, regs},
+		0xC0: &setInstruction{basicInstruction{8, 1}, b, regs},
+		0xC1: &setInstruction{basicInstruction{8, 1}, c, regs},
+		0xC2: &setInstruction{basicInstruction{8, 1}, d, regs},
+		0xC3: &setInstruction{basicInstruction{8, 1}, e, regs},
+		0xC4: &setInstruction{basicInstruction{8, 1}, h, regs},
+		0xC5: &setInstruction{basicInstruction{8, 1}, l, regs},
+		0xC6: &setFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
+		0xC7: &setInstruction{basicInstruction{8, 1}, a, regs},
+		0x80: &resetInstruction{basicInstruction{8, 1}, b, regs},
+		0x81: &resetInstruction{basicInstruction{8, 1}, c, regs},
+		0x82: &resetInstruction{basicInstruction{8, 1}, d, regs},
+		0x83: &resetInstruction{basicInstruction{8, 1}, e, regs},
+		0x84: &resetInstruction{basicInstruction{8, 1}, h, regs},
+		0x85: &resetInstruction{basicInstruction{8, 1}, l, regs},
+		0x86: &resetFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
+		0x87: &resetInstruction{basicInstruction{8, 1}, a, regs},
 	}
 }
 
@@ -515,5 +581,70 @@ func (i *srlFromMemoryInstruction) Execute(params Parameters) Addresser {
 
 	i.mmu.WriteByte(addr, val)
 	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *bitInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1 >> params[0])
+	val := i.regs.ReadRegister(i.source)
+
+	var flags byte
+	flags = 0x20
+	if (val & bit) == 0 {
+		flags += 0x80
+	}
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *bitFromMemoryInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1 >> params[0])
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+
+	var flags byte
+	flags = 0x20
+	if (val & bit) == 0 {
+		flags += 0x80
+	}
+	i.regs.WriteRegister(f, flags)
+	return &address{}
+}
+
+func (i *setInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1 >> params[0])
+	i.regs.WriteRegister(i.source, (i.regs.ReadRegister(i.source) | bit))
+	return &address{}
+}
+
+func (i *setFromMemoryInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1 >> params[0])
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+	i.mmu.WriteByte(addr, val|bit)
+	return &address{}
+}
+
+func (i *resetInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1>>params[0]) ^ 0xFF
+	i.regs.WriteRegister(i.source, (i.regs.ReadRegister(i.source) & bit))
+	return &address{}
+	return &address{}
+}
+
+func (i *resetFromMemoryInstruction) Execute(params Parameters) Addresser {
+	bit := byte(1>>params[0]) ^ 0xFF
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	val := i.mmu.ReadAt(addr)
+	i.mmu.WriteByte(addr, val&bit)
 	return &address{}
 }
