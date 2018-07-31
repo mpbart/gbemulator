@@ -121,16 +121,18 @@ type srlFromMemoryInstruction struct {
 
 type bitInstruction struct {
 	basicInstruction
-	source Register
-	regs   Registers
+	bitNumber uint
+	source    Register
+	regs      Registers
 }
 
 type bitFromMemoryInstruction struct {
 	basicInstruction
-	source1 Register
-	source2 Register
-	regs    Registers
-	mmu     MMU
+	bitNumber uint
+	source1   Register
+	source2   Register
+	regs      Registers
+	mmu       MMU
 }
 
 type setInstruction struct {
@@ -227,28 +229,84 @@ func CreateExtendedInstructions(regs Registers, mmu MMU) map[byte]ExtendedInstru
 		0x3D: &srlInstruction{basicInstruction{8, 0}, l, regs},
 		0x3E: &srlFromMemoryInstruction{basicInstruction{16, 0}, h, l, regs, mmu},
 		0x3F: &srlInstruction{basicInstruction{8, 0}, a, regs},
-		0x40: &bitInstruction{basicInstruction{8, 1}, b, regs},
-		0x41: &bitInstruction{basicInstruction{8, 1}, c, regs},
-		0x42: &bitInstruction{basicInstruction{8, 1}, d, regs},
-		0x43: &bitInstruction{basicInstruction{8, 1}, e, regs},
-		0x44: &bitInstruction{basicInstruction{8, 1}, h, regs},
-		0x45: &bitInstruction{basicInstruction{8, 1}, l, regs},
-		0x46: &bitFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
-		0x47: &bitInstruction{basicInstruction{8, 1}, a, regs},
-		0xC0: &setInstruction{basicInstruction{8, 1}, b, regs},
-		0xC1: &setInstruction{basicInstruction{8, 1}, c, regs},
-		0xC2: &setInstruction{basicInstruction{8, 1}, d, regs},
-		0xC3: &setInstruction{basicInstruction{8, 1}, e, regs},
-		0xC4: &setInstruction{basicInstruction{8, 1}, h, regs},
-		0xC5: &setInstruction{basicInstruction{8, 1}, l, regs},
+		0x40: &bitInstruction{basicInstruction{8, 0}, 0, b, regs},
+		0x41: &bitInstruction{basicInstruction{8, 0}, 0, c, regs},
+		0x42: &bitInstruction{basicInstruction{8, 0}, 0, d, regs},
+		0x43: &bitInstruction{basicInstruction{8, 0}, 0, e, regs},
+		0x44: &bitInstruction{basicInstruction{8, 0}, 0, h, regs},
+		0x45: &bitInstruction{basicInstruction{8, 0}, 0, l, regs},
+		0x46: &bitFromMemoryInstruction{basicInstruction{16, 0}, 0, h, l, regs, mmu},
+		0x47: &bitInstruction{basicInstruction{8, 0}, 0, a, regs},
+		0x48: &bitInstruction{basicInstruction{8, 0}, 1, b, regs},
+		0x49: &bitInstruction{basicInstruction{8, 0}, 1, c, regs},
+		0x4A: &bitInstruction{basicInstruction{8, 0}, 1, d, regs},
+		0x4B: &bitInstruction{basicInstruction{8, 0}, 1, e, regs},
+		0x4C: &bitInstruction{basicInstruction{8, 0}, 1, h, regs},
+		0x4D: &bitInstruction{basicInstruction{8, 0}, 1, l, regs},
+		0x4E: &bitFromMemoryInstruction{basicInstruction{16, 0}, 1, h, l, regs, mmu},
+		0x4F: &bitInstruction{basicInstruction{8, 0}, 1, a, regs},
+		0x50: &bitInstruction{basicInstruction{8, 0}, 2, b, regs},
+		0x51: &bitInstruction{basicInstruction{8, 0}, 2, c, regs},
+		0x52: &bitInstruction{basicInstruction{8, 0}, 2, d, regs},
+		0x53: &bitInstruction{basicInstruction{8, 0}, 2, e, regs},
+		0x54: &bitInstruction{basicInstruction{8, 0}, 2, h, regs},
+		0x55: &bitInstruction{basicInstruction{8, 0}, 2, l, regs},
+		0x56: &bitFromMemoryInstruction{basicInstruction{16, 0}, 2, h, l, regs, mmu},
+		0x57: &bitInstruction{basicInstruction{8, 0}, 2, a, regs},
+		0x58: &bitInstruction{basicInstruction{8, 0}, 3, b, regs},
+		0x59: &bitInstruction{basicInstruction{8, 0}, 3, c, regs},
+		0x5A: &bitInstruction{basicInstruction{8, 0}, 3, d, regs},
+		0x5B: &bitInstruction{basicInstruction{8, 0}, 3, e, regs},
+		0x5C: &bitInstruction{basicInstruction{8, 0}, 3, h, regs},
+		0x5D: &bitInstruction{basicInstruction{8, 0}, 3, l, regs},
+		0x5E: &bitFromMemoryInstruction{basicInstruction{16, 0}, 3, h, l, regs, mmu},
+		0x5F: &bitInstruction{basicInstruction{8, 0}, 3, a, regs},
+		0x60: &bitInstruction{basicInstruction{8, 0}, 4, b, regs},
+		0x61: &bitInstruction{basicInstruction{8, 0}, 4, c, regs},
+		0x62: &bitInstruction{basicInstruction{8, 0}, 4, d, regs},
+		0x63: &bitInstruction{basicInstruction{8, 0}, 4, e, regs},
+		0x64: &bitInstruction{basicInstruction{8, 0}, 4, h, regs},
+		0x65: &bitInstruction{basicInstruction{8, 0}, 4, l, regs},
+		0x66: &bitFromMemoryInstruction{basicInstruction{16, 0}, 4, h, l, regs, mmu},
+		0x67: &bitInstruction{basicInstruction{8, 0}, 4, a, regs},
+		0x68: &bitInstruction{basicInstruction{8, 0}, 5, b, regs},
+		0x69: &bitInstruction{basicInstruction{8, 0}, 5, c, regs},
+		0x6A: &bitInstruction{basicInstruction{8, 0}, 5, d, regs},
+		0x6B: &bitInstruction{basicInstruction{8, 0}, 5, e, regs},
+		0x6C: &bitInstruction{basicInstruction{8, 0}, 5, h, regs},
+		0x6D: &bitInstruction{basicInstruction{8, 0}, 5, l, regs},
+		0x6E: &bitFromMemoryInstruction{basicInstruction{16, 0}, 5, h, l, regs, mmu},
+		0x6F: &bitInstruction{basicInstruction{8, 0}, 5, a, regs},
+		0x70: &bitInstruction{basicInstruction{8, 0}, 6, b, regs},
+		0x71: &bitInstruction{basicInstruction{8, 0}, 6, c, regs},
+		0x72: &bitInstruction{basicInstruction{8, 0}, 6, d, regs},
+		0x73: &bitInstruction{basicInstruction{8, 0}, 6, e, regs},
+		0x74: &bitInstruction{basicInstruction{8, 0}, 6, h, regs},
+		0x75: &bitInstruction{basicInstruction{8, 0}, 6, l, regs},
+		0x76: &bitFromMemoryInstruction{basicInstruction{16, 0}, 6, h, l, regs, mmu},
+		0x77: &bitInstruction{basicInstruction{8, 0}, 6, a, regs},
+		0x78: &bitInstruction{basicInstruction{8, 0}, 7, b, regs},
+		0x79: &bitInstruction{basicInstruction{8, 0}, 7, c, regs},
+		0x7A: &bitInstruction{basicInstruction{8, 0}, 7, d, regs},
+		0x7B: &bitInstruction{basicInstruction{8, 0}, 7, e, regs},
+		0x7C: &bitInstruction{basicInstruction{8, 0}, 7, h, regs},
+		0x7D: &bitInstruction{basicInstruction{8, 0}, 7, l, regs},
+		0x7E: &bitFromMemoryInstruction{basicInstruction{16, 0}, 7, h, l, regs, mmu},
+		0x7F: &bitInstruction{basicInstruction{8, 0}, 7, a, regs},
+		0xC0: &setInstruction{basicInstruction{8, 0}, b, regs},
+		0xC1: &setInstruction{basicInstruction{8, 0}, c, regs},
+		0xC2: &setInstruction{basicInstruction{8, 0}, d, regs},
+		0xC3: &setInstruction{basicInstruction{8, 0}, e, regs},
+		0xC4: &setInstruction{basicInstruction{8, 0}, h, regs},
+		0xC5: &setInstruction{basicInstruction{8, 0}, l, regs},
 		0xC6: &setFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
-		0xC7: &setInstruction{basicInstruction{8, 1}, a, regs},
-		0x80: &resetInstruction{basicInstruction{8, 1}, b, regs},
-		0x81: &resetInstruction{basicInstruction{8, 1}, c, regs},
-		0x82: &resetInstruction{basicInstruction{8, 1}, d, regs},
-		0x83: &resetInstruction{basicInstruction{8, 1}, e, regs},
-		0x84: &resetInstruction{basicInstruction{8, 1}, h, regs},
-		0x85: &resetInstruction{basicInstruction{8, 1}, l, regs},
+		0xC7: &setInstruction{basicInstruction{8, 0}, a, regs},
+		0x80: &resetInstruction{basicInstruction{8, 0}, b, regs},
+		0x81: &resetInstruction{basicInstruction{8, 0}, c, regs},
+		0x82: &resetInstruction{basicInstruction{8, 0}, d, regs},
+		0x83: &resetInstruction{basicInstruction{8, 0}, e, regs},
+		0x84: &resetInstruction{basicInstruction{8, 0}, h, regs},
+		0x85: &resetInstruction{basicInstruction{8, 0}, l, regs},
 		0x86: &resetFromMemoryInstruction{basicInstruction{16, 1}, h, l, regs, mmu},
 		0x87: &resetInstruction{basicInstruction{8, 1}, a, regs},
 	}
@@ -585,7 +643,7 @@ func (i *srlFromMemoryInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *bitInstruction) Execute(params Parameters) Addresser {
-	bit := byte(1 >> params[0])
+	bit := byte(1 >> i.bitNumber)
 	val := i.regs.ReadRegister(i.source)
 
 	var flags byte
@@ -598,7 +656,7 @@ func (i *bitInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *bitFromMemoryInstruction) Execute(params Parameters) Addresser {
-	bit := byte(1 >> params[0])
+	bit := byte(1 >> i.bitNumber)
 	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
 	if err != nil {
 		fmt.Println(err)
