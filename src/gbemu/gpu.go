@@ -16,9 +16,32 @@ type display struct {
 	window *glfw.Window
 }
 
+type RGBPixel struct {
+	Red   uint
+	Green uint
+	Blue  uint
+}
+
 type Display interface {
 	Render()
 	Start()
+}
+
+// The 4 methods below are intended to be used as constants
+func WHITE() RGBPixel {
+	return RGBPixel{0, 0, 0}
+}
+
+func LIGHT_GRAY() RGBPixel {
+	return RGBPixel{211, 211, 211}
+}
+
+func DARK_GRAY() RGBPixel {
+	return RGBPixel{47, 70, 79}
+}
+
+func BLACK() RGBPixel {
+	return RGBPixel{0, 0, 0}
 }
 
 func CreateDisplay(exitChannel chan bool) {

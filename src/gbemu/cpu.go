@@ -109,7 +109,7 @@ func (c *cpu) Run(exitChannel chan bool) {
 		}
 		result := instruction.Execute(params)
 
-		fmt.Printf("executed %x\n", opcode)
+		fmt.Printf("executed %x at %x\n", opcode, c.registers.ReadPC())
 
 		if result.ShouldJump() {
 			c.registers.WritePC(result.NewAddress())
