@@ -18,13 +18,14 @@ func initialize() {
 
 func main() {
 	exitChannel := make(chan bool)
-	go CreateComponents(exitChannel)
-	CreateDisplay(exitChannel) // This needs to happen on the main OS thread for the UI library to function correctly
+	gpu := CreateDisplay()
+	go CreateComponents(exitChannel, gpu)
+	gpu.Start(exitChannel) // This needs to happen on the main OS thread for the UI library to function correctly
 }
 
-func CreateComponents(exitChannel chan bool) {
+func CreateComponents(exitChannel chan bool, gpu Display) {
 	m := CreateMMU()
-	cpu := CreateCPU(m)
+	cpu := CreateCPU(m, gpu)
 
 	m.Reset()
 	cpu.Reset()

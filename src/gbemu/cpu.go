@@ -2,6 +2,8 @@ package main
 
 import "fmt"
 
+const TICKS_PER_REFRESH int = 70224
+
 type CPU interface {
 	Reset()
 	Run(chan bool)
@@ -9,19 +11,23 @@ type CPU interface {
 
 type cpu struct {
 	mmu          MMU
+	gpu          Display
 	registers    Registers
 	instructions map[byte]Instruction
 	stopped      bool
+	ticks        int
 }
 
-func CreateCPU(mmu MMU) CPU {
+func CreateCPU(mmu MMU, gpu Display) CPU {
 	registers := CreateRegisters(mmu)
 
 	return &cpu{
 		mmu:          mmu,
+		gpu:          gpu,
 		registers:    registers,
 		instructions: CreateInstructions(registers, mmu),
 		stopped:      false,
+		ticks:        0,
 	}
 }
 
@@ -83,12 +89,24 @@ func (c *cpu) IncrementPC(offset int) {
 	c.registers.WritePC(c.registers.ReadPC() + uint16(offset))
 }
 
+// TODO: next step - add interrupts
+// 0. If multiple interrupts fire then only run highest priority
+// 1. Re-enable interrupts
+// 2. Push PC onto stack
+// 3. Got to new PC (0x40, 0x48, 0x50, etc.)
+// 4. Increment by 12 clock cycles
 func (c *cpu) Run(exitChannel chan bool) {
 	for {
 
 		// Don't execute any more instructions until a key press event happens
 		if c.stopped {
 			return
+		}
+
+		// Refresh the screen 59.7 times per second
+		if c.ticks >= TICKS_PER_REFRESH {
+			c.gpu.Render()
+			c.ticks = 0
 		}
 
 		opcode := c.getNextInstruction()
@@ -120,6 +138,7 @@ func (c *cpu) Run(exitChannel chan bool) {
 		if result.IsStopped() {
 			c.stopped = true
 		}
+		c.ticks += instruction.GetCycles(params)
 	}
 }
 

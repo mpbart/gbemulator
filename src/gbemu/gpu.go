@@ -24,7 +24,7 @@ type RGBPixel struct {
 
 type Display interface {
 	Render()
-	Start()
+	Start(chan bool)
 }
 
 // The 4 methods below are intended to be used as constants
@@ -44,7 +44,7 @@ func BLACK() RGBPixel {
 	return RGBPixel{0, 0, 0}
 }
 
-func CreateDisplay(exitChannel chan bool) {
+func CreateDisplay() Display {
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println(err)
@@ -72,8 +72,7 @@ func CreateDisplay(exitChannel chan bool) {
 	gl.LoadIdentity()
 	window.SetPos(0, 0)
 
-	d := display{window}
-	d.Start(exitChannel)
+	return &display{window}
 }
 
 func (d *display) Render() {

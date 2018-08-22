@@ -5,6 +5,7 @@ import "fmt"
 type ExtendedInstruction interface {
 	Execute(Parameters) Addresser
 	GetNumParameterBytes() int
+	GetCycles(Parameters) int
 }
 
 type swapInstruction struct {

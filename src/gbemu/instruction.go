@@ -19,6 +19,7 @@ type address struct {
 type Instruction interface {
 	Execute(Parameters) Addresser
 	GetNumParameterBytes() int
+	GetCycles(Parameters) int
 }
 
 type basicInstruction struct {
@@ -797,6 +798,10 @@ func (a *address) IsStopped() bool {
 
 func (i *basicInstruction) GetNumParameterBytes() int {
 	return i.paramBytes
+}
+
+func (i *basicInstruction) GetCycles(_ Parameters) int {
+	return i.cycles
 }
 
 func (n *noopInstruction) Execute(_ Parameters) Addresser {
@@ -1772,6 +1777,10 @@ func (i *scfInstruction) Execute(params Parameters) Addresser {
 
 func (i *extendedInstruction) GetNumParameterBytes() int {
 	return 1
+}
+
+func (i *extendedInstruction) GetCycles(params Parameters) int {
+	return i.extendedInstructions[params[0]].GetCycles(params)
 }
 
 func (i *extendedInstruction) Execute(params Parameters) Addresser {
