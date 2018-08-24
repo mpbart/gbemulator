@@ -27,6 +27,29 @@ type Display interface {
 	Start(chan bool)
 }
 
+// Notes:
+// * 4 Modes are
+//		- 1. OAM - 20 clocks
+//			* search for sprites that are visible on this line
+//			* oam.x != 0 && LY + 16 >= oam.y && LY + 16 < oam.y
+//		- 2. Pixel transfer - 43+ clocks (can be more depending on window and pixels drawn)
+//			* Shifts out one pixel per (4 mHZ) clock from the PPU
+//			* Needs to also store the source of the pixel to determine priority
+//			* Lower numbered sprites > higher sprites > background
+//			* Fetches the next 8 pixels at half speed
+//			* Fetches take 4 steps
+//				- 1. Read tile number
+//				- 2. Read byte 1
+//				- 3. Read byte 2
+//				- 4. Idle until the last 8 bits in the PPU are empty
+//			* Windows cause the PPU to be totally reset and to start fetching from that window location
+//			* When a sprite is encountered it's pixels are overlaid onto the first 8 pixels in the PPU
+//		- 3. H-Blank - 51- clocks (Extra clocks in pixel transfer are taken out of H-Blank)
+//		... Repeats 144 times
+//		- 4. V-Blank - (20 + 43 + 51) clocks
+//		... Repeats 10 times
+//		- 5. Goes back to mode 1
+
 // The 4 methods below are intended to be used as constants
 func WHITE() RGBPixel {
 	return RGBPixel{0, 0, 0}
