@@ -8,6 +8,8 @@ type MMU interface {
 	Reset()
 	ReadAt(uint16) uint8
 	WriteByte(uint16, uint8)
+	LCDStatusMode() uint8
+	Tick()
 }
 
 type mmu struct {
@@ -80,7 +82,7 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address >= 0xC000 && address <= 0xDFFF:
 		m.InternalRAM[address-0xC000] = value
 		// Echo RAM contains the same values as internal RAM
-		m.EchoRAM[address-0xE000] = value
+		m.EchoRAM[address-0xC000] = value
 	case address >= 0xE000 && address <= 0xFDFF:
 		m.EchoRAM[address-0xE000] = value
 	case address >= 0xFE00 && address <= 0xFE9F:
@@ -113,4 +115,7 @@ func (m *mmu) CanAccessOAM() bool {
 func (m *mmu) CanAccessVRAM() bool {
 	mode := m.LCDStatusMode()
 	return mode != 3
+}
+
+func (m *mmu) Tick() {
 }

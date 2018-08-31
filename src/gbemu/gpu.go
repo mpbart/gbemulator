@@ -13,7 +13,9 @@ const (
 )
 
 type display struct {
-	window *glfw.Window
+	window      *glfw.Window
+	mmu         MMU
+	tickChannel chan bool
 }
 
 type RGBPixel struct {
@@ -24,7 +26,8 @@ type RGBPixel struct {
 
 type Display interface {
 	Render()
-	Start(chan bool)
+	Tick()
+	Start()
 }
 
 // Notes:
@@ -67,7 +70,7 @@ func BLACK() RGBPixel {
 	return RGBPixel{0, 0, 0}
 }
 
-func CreateDisplay() Display {
+func CreateDisplay(mmu MMU, cpu CPU) {
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println(err)
@@ -78,6 +81,7 @@ func CreateDisplay() Display {
 		fmt.Println(err)
 	}
 
+	glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
 	window, err := glfw.CreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GB Emulator", nil, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -95,7 +99,9 @@ func CreateDisplay() Display {
 	gl.LoadIdentity()
 	window.SetPos(0, 0)
 
-	return &display{window}
+	tickChannel := make(chan bool)
+	d := &display{window, mmu, tickChannel}
+	d.Simulate(cpu, mmu)
 }
 
 func (d *display) Render() {
@@ -115,18 +121,28 @@ func (d *display) Render() {
 	d.window.SwapBuffers()
 }
 
-func (d *display) Start(exitChannel chan bool) {
+func (d *display) Simulate(cpu CPU, mmu MMU) {
+	ticks := 0
 	for {
-		select {
-		case <-exitChannel:
-			return
-		default:
-			if d.window.ShouldClose() {
-				return
-			}
-			d.Render()
-			d.window.SwapBuffers()
-			glfw.PollEvents()
+		cpu.Tick()
+		mmu.Tick()
+		if ticks >= 70224 {
+			d.Tick()
+			ticks = 0
 		}
+		ticks += 1
 	}
+}
+
+func (d *display) Tick() {
+	if d.window.ShouldClose() {
+		return
+	}
+	d.Render()
+	d.window.SwapBuffers()
+	glfw.PollEvents()
+}
+
+func (d *display) mode() uint8 {
+	return d.mmu.LCDStatusMode()
 }

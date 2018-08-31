@@ -13,27 +13,33 @@ const (
 
 func initialize() {
 	runtime.LockOSThread()
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	//runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 }
 
 func main() {
 	exitChannel := make(chan bool)
-	gpu := CreateDisplay()
-	go CreateComponents(exitChannel, gpu)
-	gpu.Start(exitChannel) // This needs to happen on the main OS thread for the UI library to function correctly
+
+	mmu := InitializeMMU()
+	cpu := InitializeCPU(exitChannel, mmu)
+
+	CreateDisplay(mmu, cpu) // GLFW wil not work if the window pointer is passed around so this function never returns
 }
 
-func CreateComponents(exitChannel chan bool, gpu Display) {
-	m := CreateMMU()
-	cpu := CreateCPU(m, gpu)
-
-	m.Reset()
+func InitializeCPU(exitChannel chan bool, mmu MMU) CPU {
+	cpu := CreateCPU(exitChannel, mmu)
 	cpu.Reset()
-	if err := loadROM(m); err != nil {
+	return cpu
+}
+
+func InitializeMMU() MMU {
+	mmu := CreateMMU()
+	mmu.Reset()
+
+	if err := loadROM(mmu); err != nil {
 		fmt.Println(err)
-		return
+		return nil
 	}
-	cpu.Run(exitChannel)
+	return mmu
 }
 
 func loadROM(m MMU) error {

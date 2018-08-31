@@ -6,28 +6,36 @@ const TICKS_PER_REFRESH int = 70224
 
 type CPU interface {
 	Reset()
-	Run(chan bool)
+	Tick()
 }
 
 type cpu struct {
-	mmu          MMU
-	gpu          Display
-	registers    Registers
-	instructions map[byte]Instruction
-	stopped      bool
-	ticks        int
+	mmu                MMU
+	registers          Registers
+	instructions       map[byte]Instruction
+	stopped            bool
+	InstructionTicks   int
+	exitChannel        chan bool
+	currentInstruction Instruction
+	currentOpcode      byte
+	currentParamBytes  int
+	currentParams      Parameters
 }
 
-func CreateCPU(mmu MMU, gpu Display) CPU {
+func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 	registers := CreateRegisters(mmu)
 
 	return &cpu{
-		mmu:          mmu,
-		gpu:          gpu,
-		registers:    registers,
-		instructions: CreateInstructions(registers, mmu),
-		stopped:      false,
-		ticks:        0,
+		mmu:                mmu,
+		registers:          registers,
+		instructions:       CreateInstructions(registers, mmu),
+		stopped:            false,
+		InstructionTicks:   4, // Current assumption is that the first instruction is always 4 cycles. May need to refactor and hold instructions as state to fix this
+		exitChannel:        exitChannel,
+		currentInstruction: nil,
+		currentOpcode:      0,
+		currentParamBytes:  0,
+		currentParams:      Parameters{},
 	}
 }
 
@@ -73,17 +81,8 @@ func (cpu *cpu) Reset() {
 	cpu.mmu.WriteByte(0xFFFF, 0x00)
 
 	cpu.stopped = false
+	cpu.decodeNextInstruction()
 }
-
-/*
-func (c *cpu) IncrementSP() {
-	c.registers.WriteSP(c.registers.ReadSP() + 0x02)
-}
-
-func (c *cpu) DecrementSP() {
-	c.registers.WriteSP(c.registers.ReadSP() - 0x02)
-}
-*/
 
 func (c *cpu) IncrementPC(offset int) {
 	c.registers.WritePC(c.registers.ReadPC() + uint16(offset))
@@ -95,53 +94,59 @@ func (c *cpu) IncrementPC(offset int) {
 // 2. Push PC onto stack
 // 3. Got to new PC (0x40, 0x48, 0x50, etc.)
 // 4. Increment by 12 clock cycles
-func (c *cpu) Run(exitChannel chan bool) {
-	for {
+func (c *cpu) Tick() {
 
+	if c.InstructionTicks != 0 {
+		c.InstructionTicks -= 1
+		return
+	} else {
 		// Don't execute any more instructions until a key press event happens
 		if c.stopped {
 			return
 		}
-
-		// Refresh the screen 59.7 times per second
-		if c.ticks >= TICKS_PER_REFRESH {
-			c.gpu.Render()
-			c.ticks = 0
-		}
-
-		opcode := c.getNextInstruction()
-		instruction, found := c.instructions[opcode]
-
-		if !found {
-			fmt.Printf("ERROR: Opcode %x not found\n", opcode)
-			exitChannel <- true
-			break
-		}
-
-		paramBytes := instruction.GetNumParameterBytes()
-		params := make(Parameters, paramBytes)
-		if paramBytes > 0 {
-			for i := 0; i < paramBytes; i++ {
-				params[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i+1))
-			}
-		}
-		result := instruction.Execute(params)
-
-		fmt.Printf("executed %x at %x\n", opcode, c.registers.ReadPC())
-
-		if result.ShouldJump() {
-			c.registers.WritePC(result.NewAddress())
-		} else {
-			c.IncrementPC(paramBytes + 1)
-		}
-
-		if result.IsStopped() {
-			c.stopped = true
-		}
-		c.ticks += instruction.GetCycles(params)
+		c.executeInstruction()
+		c.decodeNextInstruction()
 	}
 }
 
-func (c *cpu) getNextInstruction() byte {
+func (c *cpu) getNextInstruction() uint8 {
 	return c.mmu.ReadAt(c.registers.ReadPC())
+}
+
+func (c *cpu) decodeNextInstruction() {
+	c.currentOpcode = c.getNextInstruction()
+	instruction, found := c.instructions[c.currentOpcode]
+
+	if !found {
+		fmt.Printf("ERROR: Opcode %x not found\n", c.currentOpcode)
+		c.exitChannel <- true
+		return
+	}
+
+	c.currentInstruction = instruction
+	c.currentParamBytes = c.currentInstruction.GetNumParameterBytes()
+	c.currentParams = make(Parameters, c.currentParamBytes)
+	if c.currentParamBytes > 0 {
+		for i := 0; i < c.currentParamBytes; i++ {
+			c.currentParams[i] = c.mmu.ReadAt(c.registers.ReadPC() + uint16(i+1))
+		}
+	}
+
+	c.InstructionTicks = instruction.GetCycles(c.currentParams) // TODO: Need a better way of doing this. Pretty awkward to send in params right now...
+}
+
+func (c *cpu) executeInstruction() {
+	result := c.currentInstruction.Execute(c.currentParams)
+
+	fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
+
+	if result.ShouldJump() {
+		c.registers.WritePC(result.NewAddress())
+	} else {
+		c.IncrementPC(c.currentParamBytes + 1)
+	}
+
+	if result.IsStopped() {
+		c.stopped = true
+	}
 }
