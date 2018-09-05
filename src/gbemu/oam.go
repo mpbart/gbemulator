@@ -45,7 +45,7 @@ func (s *spriteAttribute) GetTileNumber() int {
 }
 
 func (s *spriteAttribute) HasPriority() bool {
-	return s.flags&0x80 == 0x80
+	return s.flags&0x80 == 0
 }
 
 func (s *spriteAttribute) HorizontalFlip() bool {
