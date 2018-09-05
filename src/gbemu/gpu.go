@@ -8,14 +8,20 @@ import (
 )
 
 const (
-	SCREEN_WIDTH  int = 160
-	SCREEN_HEIGHT int = 144
+	SCREEN_WIDTH        int   = 160
+	SCREEN_HEIGHT       int   = 144
+	HBLANK_MODE         uint8 = 0
+	VBLANK_MODE         uint8 = 1
+	OAM_SEARCH_MODE     uint8 = 2
+	PIXEL_TRANSFER_MODE uint8 = 3
 )
 
 type display struct {
-	window      *glfw.Window
-	mmu         MMU
-	tickChannel chan bool
+	window       *glfw.Window
+	mmu          MMU
+	tickChannel  chan bool
+	currentTicks int
+	lY           int
 }
 
 type RGBPixel struct {
@@ -81,7 +87,6 @@ func CreateDisplay(mmu MMU, cpu CPU) {
 		fmt.Println(err)
 	}
 
-	glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
 	window, err := glfw.CreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GB Emulator", nil, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -100,7 +105,7 @@ func CreateDisplay(mmu MMU, cpu CPU) {
 	window.SetPos(0, 0)
 
 	tickChannel := make(chan bool)
-	d := &display{window, mmu, tickChannel}
+	d := &display{window, mmu, tickChannel, 0, 0}
 	d.Simulate(cpu, mmu)
 }
 
@@ -135,6 +140,43 @@ func (d *display) Simulate(cpu CPU, mmu MMU) {
 }
 
 func (d *display) Tick() {
+	switch d.mode() {
+	case OAM_SEARCH_MODE:
+		if d.currentTicks == 20 { // TODO: I think this should maybe be 80, not 20
+			d.mmu.SetLCDStatusMode(PIXEL_TRANSFER_MODE)
+			d.currentTicks = 0
+		} else {
+			d.currentTicks += 1
+		}
+	case PIXEL_TRANSFER_MODE:
+		// if line has been transferred to pixel buffer
+		d.mmu.SetLCDStatusMode(HBLANK_MODE)
+		// else
+		d.currentTicks += 1
+	case HBLANK_MODE:
+		if d.currentTicks == 94 {
+			if d.lY == 144 {
+				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
+				d.currentTicks = 0
+				d.lY += 1
+			} else {
+				d.mmu.SetLCDStatusMode(VBLANK_MODE)
+				d.currentTicks = 0
+			}
+		} else {
+			d.currentTicks += 1
+		}
+	case VBLANK_MODE:
+		if d.currentTicks == 1140 {
+			d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
+			d.currentTicks = 0
+		} else {
+			d.currentTicks += 1
+		}
+	}
+}
+
+func (d *display) show() {
 	if d.window.ShouldClose() {
 		return
 	}

@@ -138,7 +138,7 @@ func (c *cpu) decodeNextInstruction() {
 func (c *cpu) executeInstruction() {
 	result := c.currentInstruction.Execute(c.currentParams)
 
-	fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
+	//fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
 
 	if result.ShouldJump() {
 		c.registers.WritePC(result.NewAddress())

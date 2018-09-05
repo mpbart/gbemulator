@@ -9,6 +9,7 @@ type MMU interface {
 	ReadAt(uint16) uint8
 	WriteByte(uint16, uint8)
 	LCDStatusMode() uint8
+	SetLCDStatusMode(uint8)
 	Tick()
 }
 
@@ -105,6 +106,11 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 
 func (m *mmu) LCDStatusMode() uint8 {
 	return m.ReadAt(0xFF41) & 0x03
+}
+
+func (m *mmu) SetLCDStatusMode(mode uint8) {
+	value := m.ReadAt(0xFF41)&0xFC + mode
+	m.WriteByte(0xFF41, value)
 }
 
 func (m *mmu) CanAccessOAM() bool {
