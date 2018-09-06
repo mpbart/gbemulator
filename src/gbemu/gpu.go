@@ -17,11 +17,11 @@ const (
 )
 
 type display struct {
-	window       *glfw.Window
-	mmu          MMU
-	tickChannel  chan bool
-	currentTicks int
-	lY           int
+	window         *glfw.Window
+	mmu            MMU
+	currentTicks   int
+	lY             int
+	visibleSprites []SpriteAttribute
 }
 
 type RGBPixel struct {
@@ -104,8 +104,13 @@ func CreateDisplay(mmu MMU, cpu CPU) {
 	gl.LoadIdentity()
 	window.SetPos(0, 0)
 
-	tickChannel := make(chan bool)
-	d := &display{window, mmu, tickChannel, 0, 0}
+	d := &display{
+		window:         window,
+		mmu:            mmu,
+		currentTicks:   0,
+		lY:             0,
+		visibleSprites: make([]SpriteAttribute, 10),
+	}
 	d.Simulate(cpu, mmu)
 }
 
@@ -143,6 +148,7 @@ func (d *display) Tick() {
 	switch d.mode() {
 	case OAM_SEARCH_MODE:
 		if d.currentTicks == 20 { // TODO: I think this should maybe be 80, not 20
+			d.readOam()
 			d.mmu.SetLCDStatusMode(PIXEL_TRANSFER_MODE)
 			d.currentTicks = 0
 		} else {
@@ -187,4 +193,28 @@ func (d *display) show() {
 
 func (d *display) mode() uint8 {
 	return d.mmu.LCDStatusMode()
+}
+
+func (d *display) readOam() {
+	spriteNum := 0
+	d.visibleSprites = make([]SpriteAttribute, 10)
+	for i := 0; i < 10; i++ {
+		byte0 := d.mmu.ReadAt(uint16(0xFF00 + i*4))
+		byte1 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 1))
+		byte2 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 2))
+		byte3 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 3))
+		attr := fromBytes([]uint8{byte0, byte1, byte2, byte3})
+		if attr.GetXPosition() != 0 && d.lY+16 >= attr.GetYPosition() && d.lY+16 < attr.GetYPosition()+d.spriteHeight() {
+			d.visibleSprites[spriteNum] = attr
+		}
+	}
+}
+
+func (d *display) spriteHeight() int {
+	sizeBit := d.mmu.SpriteSize()
+	if sizeBit == 0 {
+		return 8
+	} else {
+		return 16
+	}
 }

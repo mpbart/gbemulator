@@ -10,6 +10,7 @@ type MMU interface {
 	WriteByte(uint16, uint8)
 	LCDStatusMode() uint8
 	SetLCDStatusMode(uint8)
+	SpriteSize() int
 	Tick()
 }
 
@@ -121,6 +122,10 @@ func (m *mmu) CanAccessOAM() bool {
 func (m *mmu) CanAccessVRAM() bool {
 	mode := m.LCDStatusMode()
 	return mode != 3
+}
+
+func (m *mmu) SpriteSize() int {
+	return GetBit(m.ReadAt(0xFF40), 2)
 }
 
 func (m *mmu) Tick() {
