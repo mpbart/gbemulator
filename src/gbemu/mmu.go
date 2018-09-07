@@ -12,6 +12,12 @@ type MMU interface {
 	SetLCDStatusMode(uint8)
 	SpriteSize() int
 	LCDEnabled() bool
+	WindowTileMap() uint16
+	WindowDisplayEnabled() bool
+	BGAndWindowTileData() uint16
+	BGTileMap() uint16
+	SpritesEnabled() bool
+	BGDisplayPriority() bool
 	Tick()
 }
 
@@ -125,12 +131,48 @@ func (m *mmu) CanAccessVRAM() bool {
 	return mode != 3
 }
 
+func (m *mmu) LCDEnabled() bool {
+	return GetBit(m.ReadAt(0xFF40), 7) == 1
+}
+
+func (m *mmu) WindowTileMap() uint16 {
+	if GetBit(m.ReadAt(0xFF40), 6) == 1 {
+		return uint16(0x9C00)
+	} else {
+		return uint16(0x9800)
+	}
+}
+
+func (m *mmu) WindowDisplayEnabled() bool {
+	return GetBit(m.ReadAt(0xFF40), 5) == 1
+}
+
+func (m *mmu) BGAndWindowTileData() uint16 {
+	if GetBit(m.ReadAt(0xFF40), 4) == 1 {
+		return uint16(0x8000)
+	} else {
+		return uint16(0x8800)
+	}
+}
+
+func (m *mmu) BGTileMap() uint16 {
+	if GetBit(m.ReadAt(0xFF40), 3) == 1 {
+		return uint16(0x9C00)
+	} else {
+		return uint16(0x9800)
+	}
+}
+
 func (m *mmu) SpriteSize() int {
 	return GetBit(m.ReadAt(0xFF40), 2)
 }
 
-func (m *mmu) LCDEnabled() bool {
-	return GetBit(m.ReadAt(0xFF40), 7) == 1
+func (m *mmu) SpritesEnabled() bool {
+	return GetBit(m.ReadAt(0xFF40), 1) == 1
+}
+
+func (m *mmu) BGDisplayPriority() bool {
+	return GetBit(m.ReadAt(0xFF40), 0) == 1
 }
 
 func (m *mmu) Tick() {
