@@ -11,6 +11,7 @@ type MMU interface {
 	LCDStatusMode() uint8
 	SetLCDStatusMode(uint8)
 	SpriteSize() int
+	LCDEnabled() bool
 	Tick()
 }
 
@@ -126,6 +127,10 @@ func (m *mmu) CanAccessVRAM() bool {
 
 func (m *mmu) SpriteSize() int {
 	return GetBit(m.ReadAt(0xFF40), 2)
+}
+
+func (m *mmu) LCDEnabled() bool {
+	return GetBit(m.ReadAt(0xFF40), 7) == 1
 }
 
 func (m *mmu) Tick() {

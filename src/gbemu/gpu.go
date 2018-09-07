@@ -145,6 +145,10 @@ func (d *display) Simulate(cpu CPU, mmu MMU) {
 }
 
 func (d *display) Tick() {
+	if !d.mmu.LCDEnabled() {
+		return
+	}
+
 	switch d.mode() {
 	case OAM_SEARCH_MODE:
 		if d.currentTicks == 20 { // TODO: I think this should maybe be 80, not 20
