@@ -19,6 +19,8 @@ const (
 type display struct {
 	window         *glfw.Window
 	mmu            MMU
+	ppu            PPU
+	addresser      MemoryAddresser
 	currentTicks   int
 	lY             int
 	visibleSprites []SpriteAttribute
@@ -107,6 +109,8 @@ func CreateDisplay(mmu MMU, cpu CPU) {
 	d := &display{
 		window:         window,
 		mmu:            mmu,
+		addresser:      CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
+		ppu:            createPPU(mmu),
 		currentTicks:   0,
 		lY:             0,
 		visibleSprites: make([]SpriteAttribute, 10),
@@ -159,10 +163,13 @@ func (d *display) Tick() {
 			d.currentTicks += 1
 		}
 	case PIXEL_TRANSFER_MODE:
-		// if line has been transferred to pixel buffer
-		d.mmu.SetLCDStatusMode(HBLANK_MODE)
-		// else
-		d.currentTicks += 1
+		d.ppu.Tick(d.visibleSprites)
+		if d.ppu.LineFinished() {
+			d.mmu.SetLCDStatusMode(HBLANK_MODE)
+			d.updateDisplay()
+		} else {
+			d.currentTicks += 1
+		}
 	case HBLANK_MODE:
 		if d.currentTicks == 94 {
 			if d.lY == 144 {
@@ -180,13 +187,14 @@ func (d *display) Tick() {
 		if d.currentTicks == 1140 {
 			d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 			d.currentTicks = 0
+			d.lY = 0
 		} else {
 			d.currentTicks += 1
 		}
 	}
 }
 
-func (d *display) show() {
+func (d *display) updateDisplay() {
 	if d.window.ShouldClose() {
 		return
 	}

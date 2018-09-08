@@ -14,7 +14,7 @@ type MMU interface {
 	LCDEnabled() bool
 	WindowTileMap() uint16
 	WindowDisplayEnabled() bool
-	BGAndWindowTileData() uint16
+	BGAndWindowAddressMode() AddressMode
 	BGTileMap() uint16
 	SpritesEnabled() bool
 	BGDisplayPriority() bool
@@ -147,11 +147,11 @@ func (m *mmu) WindowDisplayEnabled() bool {
 	return GetBit(m.ReadAt(0xFF40), 5) == 1
 }
 
-func (m *mmu) BGAndWindowTileData() uint16 {
+func (m *mmu) BGAndWindowAddressMode() AddressMode {
 	if GetBit(m.ReadAt(0xFF40), 4) == 1 {
-		return uint16(0x8000)
+		return ADDRESS_MODE_8000
 	} else {
-		return uint16(0x8800)
+		return ADDRESS_MODE_8800
 	}
 }
 
