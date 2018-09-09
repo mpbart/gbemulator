@@ -163,7 +163,7 @@ func (d *display) Tick() {
 			d.currentTicks += 1
 		}
 	case PIXEL_TRANSFER_MODE:
-		d.ppu.Tick(d.visibleSprites)
+		d.ppu.Tick(d.visibleSprites, d.lY)
 		if d.ppu.LineFinished() {
 			d.mmu.SetLCDStatusMode(HBLANK_MODE)
 			d.updateDisplay()

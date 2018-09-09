@@ -18,6 +18,7 @@ type MMU interface {
 	BGTileMap() uint16
 	SpritesEnabled() bool
 	BGDisplayPriority() bool
+	ConvertNumToPixel(int) RGBPixel
 	Tick()
 }
 
@@ -32,10 +33,22 @@ type mmu struct {
 	IoPorts         [128]uint8   // 0xFF00 - 0xFF7F
 	HRAM            [127]uint8   // 0xFF80 - 0xFFFE
 	InterruptEnable uint8        // 0xFFFF
+	colorMapping    map[int]RGBPixel
 }
 
 func CreateMMU() MMU {
-	return &mmu{}
+	return &mmu{
+		colorMapping: createColorMapping(),
+	}
+}
+
+func createColorMapping() map[int]RGBPixel {
+	m := make(map[int]RGBPixel)
+	m[0] = WHITE()
+	m[1] = LIGHT_GRAY()
+	m[2] = DARK_GRAY()
+	m[3] = BLACK()
+	return m
 }
 
 func (m *mmu) Reset() {
@@ -176,4 +189,41 @@ func (m *mmu) BGDisplayPriority() bool {
 }
 
 func (m *mmu) Tick() {
+}
+
+func (m *mmu) bgShadeForColor0() RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF47), 1)
+	lowBit := GetBit(m.ReadAt(0xFF47), 0)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) bgShadeForColor1() RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF47), 3)
+	lowBit := GetBit(m.ReadAt(0xFF47), 2)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) bgShadeForColor2() RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF47), 5)
+	lowBit := GetBit(m.ReadAt(0xFF47), 4)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) bgShadeForColor3() RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF47), 7)
+	lowBit := GetBit(m.ReadAt(0xFF47), 6)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) ConvertNumToPixel(i int) RGBPixel {
+	switch i {
+	case 0:
+		return m.bgShadeForColor0()
+	case 1:
+		return m.bgShadeForColor1()
+	case 2:
+		return m.bgShadeForColor2()
+	default:
+		return m.bgShadeForColor3()
+	}
 }

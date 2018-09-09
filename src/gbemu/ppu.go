@@ -1,27 +1,38 @@
 package main
 
 type PPU interface {
-	Tick([]SpriteAttribute)
+	Tick([]SpriteAttribute, int)
 	LineFinished() bool
 }
 
 type ppu struct {
-	fifo    []uint8
-	fetcher Fetcher
+	fifo         []RGBPixel
+	fetcher      Fetcher
+	lcdBuffer    [][]RGBPixel
+	currentPixel int
 }
 
 func createPPU(mmu MMU) PPU {
+	buffer := make([][]RGBPixel, SCREEN_HEIGHT)
+	for i := range buffer {
+		buffer[i] = make([]RGBPixel, SCREEN_WIDTH)
+	}
+
 	return &ppu{
-		fifo:    make([]uint8, 16),
-		fetcher: createFetcher(mmu),
+		fifo:         make([]RGBPixel, 16),
+		fetcher:      createFetcher(mmu),
+		currentPixel: 0,
+		lcdBuffer:    buffer,
 	}
 }
 
-func (p *ppu) Tick(_ []SpriteAttribute) {
-	p.fetcher.Fetch()
+func (p *ppu) Tick(_ []SpriteAttribute, currentLine int) {
+	if pixels := p.fetcher.Fetch(); pixels != nil {
+		p.shiftInPixels(pixels, currentLine)
+	}
 
 	if p.canShift() {
-		p.shiftOutPixel()
+		p.shiftOutPixel(currentLine)
 	}
 }
 
@@ -33,5 +44,17 @@ func (p *ppu) LineFinished() bool {
 	return false
 }
 
-func (p *ppu) shiftOutPixel() {
+func (p *ppu) shiftOutPixel(currentLine int) {
+}
+
+func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
+	// If FIFO is empty then put pixels at beginning of fifo, otherwise add them to the end
+	start := 0
+	if len(p.fifo) != 0 {
+		start = 8
+	}
+
+	for i := 0 + start; i < len(pixels)+start; i++ {
+		p.fifo[i] = pixels[i]
+	}
 }
