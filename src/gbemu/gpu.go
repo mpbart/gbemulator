@@ -135,15 +135,10 @@ func (d *display) Render() {
 }
 
 func (d *display) Simulate(cpu CPU, mmu MMU) {
-	ticks := 0
 	for {
 		cpu.Tick()
 		mmu.Tick()
-		if ticks >= 70224 {
-			d.Tick()
-			ticks = 0
-		}
-		ticks += 1
+		d.Tick()
 	}
 }
 
@@ -170,23 +165,30 @@ func (d *display) Tick() {
 		d.currentTicks += 1
 	case HBLANK_MODE:
 		if d.currentTicks == 376 {
-			if d.lY == 144 {
+			if d.lY == SCREEN_HEIGHT-1 {
 				d.mmu.SetLCDStatusMode(VBLANK_MODE)
-				d.currentTicks = 0
 				d.lY += 1
+				d.currentTicks = 0
 			} else {
+				d.lY += 1
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
+				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 				d.currentTicks = 0
 			}
 		} else {
 			d.currentTicks += 1
 		}
 	case VBLANK_MODE:
-		if d.currentTicks == 4560 {
-			d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
-			d.currentTicks = 0
-			d.lY = 0
-			d.updateDisplay()
+		if d.currentTicks == 456 {
+			if d.lY == SCREEN_WIDTH+9 {
+				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
+				d.currentTicks = 0
+				d.lY = 0
+				d.updateDisplay()
+			} else {
+				d.lY += 1
+				d.currentTicks = 0
+			}
 		} else {
 			d.currentTicks += 1
 		}

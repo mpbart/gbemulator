@@ -19,3 +19,14 @@ func BitsToNum(highBit, lowBit int) int {
 		return 3
 	}
 }
+
+func GetHighestBit(num uint8) int {
+	highestBit := 0
+	for i := 0; i < 15; i++ {
+		if num&0x01 == 1 {
+			highestBit = i
+		}
+		num = num >> 1
+	}
+	return highestBit
+}

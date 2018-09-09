@@ -21,7 +21,7 @@ func createPPU(mmu MMU) PPU {
 	}
 
 	return &ppu{
-		fifo:         make([]RGBPixel, 16),
+		fifo:         make([]RGBPixel, 0),
 		fetcher:      createFetcher(mmu),
 		currentPixel: 0,
 		lcdBuffer:    buffer,
@@ -52,18 +52,13 @@ func (p *ppu) LineFinished() bool {
 
 func (p *ppu) shiftOutPixel(currentLine int) {
 	p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+	p.fifo = p.fifo[1:]
 	p.currentPixel += 1
 }
 
 func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
-	// If FIFO is empty then put pixels at beginning of fifo, otherwise add them to the end
-	start := 0
-	if len(p.fifo) != 0 {
-		start = 8
-	}
-
-	for idx, pixel := range pixels {
-		p.fifo[idx+start] = pixel
+	for _, pixel := range pixels {
+		p.fifo = append(p.fifo, pixel)
 	}
 }
 

@@ -89,13 +89,16 @@ func (c *cpu) IncrementPC(offset int) {
 	c.registers.WritePC(c.registers.ReadPC() + uint16(offset))
 }
 
-// TODO: next step - add interrupts
-// 0. If multiple interrupts fire then only run highest priority
-// 1. Re-enable interrupts
-// 2. Push PC onto stack
-// 3. Got to new PC (0x40, 0x48, 0x50, etc.)
-// 4. Increment by 12 clock cycles
 func (c *cpu) Tick() {
+
+	if c.mmu.HasPendingInterrupt() {
+		c.mmu.DisableInterrupts()
+		interruptVector := c.mmu.GetNextPendingInterrupt()
+		c.mmu.ClearHighestInterrupt()
+		c.registers.PushSP(c.registers.ReadPC())
+		c.registers.WritePC(interruptVector)
+		c.InstructionTicks = 12
+	}
 
 	if c.InstructionTicks != 0 {
 		c.InstructionTicks -= 1
