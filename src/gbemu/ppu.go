@@ -3,6 +3,8 @@ package main
 type PPU interface {
 	Tick([]SpriteAttribute, int)
 	LineFinished() bool
+	Reset()
+	LcdBuffer(int, int) RGBPixel
 }
 
 type ppu struct {
@@ -36,15 +38,21 @@ func (p *ppu) Tick(_ []SpriteAttribute, currentLine int) {
 	}
 }
 
+func (p *ppu) Reset() {
+	p.currentPixel = 0
+}
+
 func (p *ppu) canShift() bool {
-	return len(p.fifo) > 8
+	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH
 }
 
 func (p *ppu) LineFinished() bool {
-	return false
+	return p.currentPixel == SCREEN_WIDTH
 }
 
 func (p *ppu) shiftOutPixel(currentLine int) {
+	p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+	p.currentPixel += 1
 }
 
 func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
@@ -54,7 +62,11 @@ func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
 		start = 8
 	}
 
-	for i := 0 + start; i < len(pixels)+start; i++ {
-		p.fifo[i] = pixels[i]
+	for idx, pixel := range pixels {
+		p.fifo[idx+start] = pixel
 	}
+}
+
+func (p *ppu) LcdBuffer(y, x int) RGBPixel {
+	return p.lcdBuffer[y][x]
 }

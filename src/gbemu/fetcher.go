@@ -91,12 +91,10 @@ func (f *fetcher) nextState() FetchState {
 	}
 }
 
-func (f *fetcher) shouldChangeState() bool {
-	return true
-}
-
 func (f *fetcher) readTile() {
 	f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + f.backgroundMapNumber))
+	// TODO: I don't know if this is right...
+	f.backgroundMapNumber += 1
 }
 
 func (f *fetcher) readData(byteNum uint8) {

@@ -27,9 +27,9 @@ type display struct {
 }
 
 type RGBPixel struct {
-	Red   uint
-	Green uint
-	Blue  uint
+	Red   uint8
+	Green uint8
+	Blue  uint8
 }
 
 type Display interface {
@@ -125,10 +125,9 @@ func (d *display) Render() {
 	gl.Begin(gl.POINTS)
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {
-			if x%4 == 0 {
-				gl.Color3ub(30, 20, 10)
-				gl.Vertex2i(int32(x), int32(y))
-			}
+			pixel := d.ppu.LcdBuffer(y, x)
+			gl.Color3ub(pixel.Red, pixel.Green, pixel.Blue)
+			gl.Vertex2i(int32(x), int32(y))
 		}
 	}
 	gl.End()
@@ -155,7 +154,7 @@ func (d *display) Tick() {
 
 	switch d.mode() {
 	case OAM_SEARCH_MODE:
-		if d.currentTicks == 20 { // TODO: I think this should maybe be 80, not 20
+		if d.currentTicks == 80 { // TODO: I think this should maybe be 80, not 20
 			d.readOam()
 			d.mmu.SetLCDStatusMode(PIXEL_TRANSFER_MODE)
 			d.currentTicks = 0
@@ -166,28 +165,28 @@ func (d *display) Tick() {
 		d.ppu.Tick(d.visibleSprites, d.lY)
 		if d.ppu.LineFinished() {
 			d.mmu.SetLCDStatusMode(HBLANK_MODE)
-			d.updateDisplay()
-		} else {
-			d.currentTicks += 1
+			d.ppu.Reset()
 		}
+		d.currentTicks += 1
 	case HBLANK_MODE:
-		if d.currentTicks == 94 {
+		if d.currentTicks == 376 {
 			if d.lY == 144 {
-				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
+				d.mmu.SetLCDStatusMode(VBLANK_MODE)
 				d.currentTicks = 0
 				d.lY += 1
 			} else {
-				d.mmu.SetLCDStatusMode(VBLANK_MODE)
+				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
 			}
 		} else {
 			d.currentTicks += 1
 		}
 	case VBLANK_MODE:
-		if d.currentTicks == 1140 {
+		if d.currentTicks == 4560 {
 			d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 			d.currentTicks = 0
 			d.lY = 0
+			d.updateDisplay()
 		} else {
 			d.currentTicks += 1
 		}
