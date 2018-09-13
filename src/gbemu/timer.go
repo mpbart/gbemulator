@@ -3,6 +3,7 @@ package main
 const (
 	DIVIDER_REGISTER uint16 = 0xFF04
 	TIMER_REGISTER   uint16 = 0xFF05
+	TIMER_MODULO     uint16 = 0xFF06
 	TIMER_CONTROL    uint16 = 0xFF07
 )
 
@@ -12,6 +13,7 @@ type Timer interface {
 
 type timer struct {
 	dividerCounter    int
+	timerCounter      int
 	currentInputClock int
 	mmu               MMU
 }
@@ -19,6 +21,7 @@ type timer struct {
 func CreateTimer(mmu MMU) Timer {
 	return &timer{
 		dividerCounter:    0,
+		timerCounter:      0,
 		currentInputClock: getInputClock(mmu),
 		mmu:               mmu,
 	}
@@ -26,8 +29,9 @@ func CreateTimer(mmu MMU) Timer {
 
 func (t *timer) Tick() {
 	t.dividerCounter += 1
+	t.timerCounter += 1
 
-	if t.dividerCounter == 256 {
+	if t.dividerCounter >= 256 {
 		t.incrementDividerRegister()
 		t.dividerCounter = 0
 	}
@@ -36,6 +40,11 @@ func (t *timer) Tick() {
 		if clk := getInputClock(t.mmu); clk != t.currentInputClock {
 			t.currentInputClock = clk
 		}
+
+		if t.timerCounter >= t.currentInputClock {
+			t.incrementTimerRegister()
+			t.timerCounter = 0
+		}
 	}
 }
 
@@ -43,8 +52,14 @@ func (t *timer) incrementDividerRegister() {
 	t.mmu.WriteByte(DIVIDER_REGISTER, t.mmu.ReadAt(DIVIDER_REGISTER)+1)
 }
 
-func (t *timer) incrementCounterRegister() {
-	t.mmu.WriteByte(TIMER_REGISTER, t.mmu.ReadAt(TIMER_REGISTER)+1)
+func (t *timer) incrementTimerRegister() {
+	currentValue := t.mmu.ReadAt(TIMER_REGISTER)
+	if currentValue == 0xFF {
+		t.mmu.WriteByte(TIMER_REGISTER, t.mmu.ReadAt(TIMER_MODULO))
+		// Do Interrupt
+	} else {
+		t.mmu.WriteByte(TIMER_REGISTER, currentValue+1)
+	}
 }
 
 func (t *timer) timerEnabled() bool {
