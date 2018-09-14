@@ -56,7 +56,7 @@ func (t *timer) incrementTimerRegister() {
 	currentValue := t.mmu.ReadAt(TIMER_REGISTER)
 	if currentValue == 0xFF {
 		t.mmu.WriteByte(TIMER_REGISTER, t.mmu.ReadAt(TIMER_MODULO))
-		// Do Interrupt
+		t.mmu.FireInterrupt(TIMER_INTERRUPT)
 	} else {
 		t.mmu.WriteByte(TIMER_REGISTER, currentValue+1)
 	}
