@@ -2,6 +2,8 @@ package main
 
 import "fmt"
 
+type SortableSpriteAttribute []SpriteAttribute
+
 type SpriteAttribute interface {
 	GetYPosition() int
 	GetXPosition() int
@@ -62,4 +64,16 @@ func (s *spriteAttribute) PaletteNumber() int {
 	} else {
 		return 0
 	}
+}
+
+func (s SortableSpriteAttribute) Less(i, j int) bool {
+	return s[i].GetXPosition() < s[j].GetXPosition()
+}
+
+func (s SortableSpriteAttribute) Len() int {
+	return len(s)
+}
+
+func (s SortableSpriteAttribute) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }

@@ -10,7 +10,8 @@ const (
 )
 
 type Fetcher interface {
-	Fetch() []RGBPixel
+	Fetch(int) []RGBPixel
+	Reset()
 }
 
 type fetcher struct {
@@ -19,8 +20,8 @@ type fetcher struct {
 	mmu                    MMU
 	backgroundStartAddress uint16
 	windowStartAddress     uint16
-	backgroundMapNumber    uint16
 	currentTile            uint16
+	currentPixel           uint16
 	tileData               uint16
 	doAction               bool
 	pixels                 []RGBPixel
@@ -28,12 +29,12 @@ type fetcher struct {
 
 func createFetcher(mmu MMU) Fetcher {
 	return &fetcher{
-		currentState:           TILE_READ,
-		addresser:              CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
-		mmu:                    mmu,
+		currentState: TILE_READ,
+		addresser:    CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
+		mmu:          mmu,
 		backgroundStartAddress: mmu.BGTileMap(),
 		windowStartAddress:     mmu.WindowTileMap(),
-		backgroundMapNumber:    0,
+		currentPixel:           0,
 		currentTile:            0,
 		tileData:               0,
 		doAction:               false,
@@ -41,15 +42,14 @@ func createFetcher(mmu MMU) Fetcher {
 	}
 }
 
-// TODO: Add checking for and writing of pixels and windows
-func (f *fetcher) Fetch() []RGBPixel {
+func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 	if !f.canRun() {
 		return nil
 	}
 
 	switch f.currentState {
 	case TILE_READ:
-		f.readTile()
+		f.readTile(currentLine)
 	case READ_DATA_0:
 		f.readData(0)
 	case READ_DATA_1:
@@ -63,14 +63,14 @@ func (f *fetcher) Fetch() []RGBPixel {
 	if f.currentState == TILE_READ {
 		pixels := make([]RGBPixel, 8)
 		copy(pixels, f.pixels)
-		f.reset()
+		f.Reset()
+		f.currentPixel += 8
 		return pixels
 	}
 	return nil
 }
 
-func (f *fetcher) reset() {
-	f.backgroundMapNumber = 0
+func (f *fetcher) Reset() {
 	for i := 0; i < len(f.pixels); i++ {
 		f.pixels[i] = WHITE()
 	}
@@ -91,10 +91,9 @@ func (f *fetcher) nextState() FetchState {
 	}
 }
 
-func (f *fetcher) readTile() {
-	f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + f.backgroundMapNumber))
-	// TODO: I don't know if this is right...
-	f.backgroundMapNumber += 1
+func (f *fetcher) readTile(currentLine int) {
+	yOffset, xOffset := uint16(currentLine>>3), uint16(f.currentPixel>>3)
+	f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset + xOffset))
 }
 
 func (f *fetcher) readData(byteNum uint8) {

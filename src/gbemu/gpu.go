@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -209,18 +210,25 @@ func (d *display) mode() uint8 {
 }
 
 func (d *display) readOam() {
-	spriteNum := 0
-	d.visibleSprites = make([]SpriteAttribute, 10)
-	for i := 0; i < 10; i++ {
+	d.visibleSprites = nil
+	for i := 0; i < 40; i++ {
 		byte0 := d.mmu.ReadAt(uint16(0xFF00 + i*4))
 		byte1 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 1))
 		byte2 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 2))
 		byte3 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 3))
 		attr := fromBytes([]uint8{byte0, byte1, byte2, byte3})
-		if attr.GetXPosition() != 0 && d.lY+16 >= attr.GetYPosition() && d.lY+16 < attr.GetYPosition()+d.spriteHeight() {
-			d.visibleSprites[spriteNum] = attr
+
+		if d.lY >= attr.GetYPosition()-16 && d.lY < attr.GetYPosition()+d.spriteHeight() {
+			d.visibleSprites = append(d.visibleSprites, attr)
+		}
+
+		// Only Store the first 10 sprites to be rendered
+		if len(d.visibleSprites) == 10 {
+			break
 		}
 	}
+
+	sort.Stable(SortableSpriteAttribute(d.visibleSprites))
 }
 
 func (d *display) spriteHeight() int {

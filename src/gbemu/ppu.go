@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type PPU interface {
 	Tick([]SpriteAttribute, int)
 	LineFinished() bool
@@ -32,7 +30,7 @@ func createPPU(mmu MMU) PPU {
 
 func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 	// Shifts in 8 pixels at a time from the fetcher, if they are available
-	if pixels := p.fetcher.Fetch(); pixels != nil {
+	if pixels := p.fetcher.Fetch(currentLine); pixels != nil {
 		p.shiftInPixels(pixels, currentLine)
 	}
 
@@ -55,8 +53,8 @@ func (p *ppu) LineFinished() bool {
 
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 	for _, sprite := range sprites {
-		if sprite.GetXPosition()-8 > 0 && sprite.GetXPosition()-8 >= p.currentPixel && sprite.GetXPosition() < p.currentPixel {
-			fmt.Println("Pixel is here!")
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition() == p.currentPixel {
+			p.fetcher.Reset()
 			// 1. Stop current fetching
 			// 2. Start fetching sprite pixels
 			// 3. Overlay first 8 pixels from background with sprite pixels
