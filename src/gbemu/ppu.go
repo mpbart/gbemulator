@@ -33,7 +33,12 @@ func createPPU(mmu MMU) PPU {
 func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 	// Shifts in 8 pixels at a time from the fetcher, if they are available
 	if pixels := p.fetcher.Fetch(currentLine); pixels != nil {
-		p.shiftInPixels(pixels, currentLine)
+		if p.fetchingSprite {
+			p.overlayPixels(pixels)
+			p.fetchingSprite = false
+		} else {
+			p.shiftInPixels(pixels, currentLine)
+		}
 	}
 
 	if p.canShift() {
@@ -53,10 +58,14 @@ func (p *ppu) LineFinished() bool {
 	return p.currentPixel == SCREEN_WIDTH
 }
 
+// Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
+// sprite and think it needs to re-fetch...
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
-	for _, sprite := range sprites {
+	for idx, sprite := range sprites {
 		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition() == p.currentPixel {
 			p.fetcher.Reset(uint16(p.currentPixel))
+			p.fetchingSprite = true
+			return
 			// 1. Stop current fetching
 			// 2. Start fetching sprite pixels
 			// 3. Overlay first 8 pixels from background with sprite pixels
@@ -76,4 +85,7 @@ func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
 
 func (p *ppu) LcdBuffer(y, x int) RGBPixel {
 	return p.lcdBuffer[y][x]
+}
+
+func (p *ppu) overlayPixels(pixels []RGBPixel) {
 }
