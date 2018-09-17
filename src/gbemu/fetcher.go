@@ -11,7 +11,7 @@ const (
 
 type Fetcher interface {
 	Fetch(int) []RGBPixel
-	Reset()
+	Reset(uint16)
 }
 
 type fetcher struct {
@@ -63,14 +63,15 @@ func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 	if f.currentState == TILE_READ {
 		pixels := make([]RGBPixel, 8)
 		copy(pixels, f.pixels)
-		f.Reset()
-		f.currentPixel += 8
+		f.Reset(f.currentPixel + 8)
 		return pixels
 	}
 	return nil
 }
 
-func (f *fetcher) Reset() {
+// Have reset take a param so that the ppu can tell it where to start fetching sprite pixels at
+func (f *fetcher) Reset(currentPixel uint16) {
+	f.currentPixel = currentPixel
 	for i := 0; i < len(f.pixels); i++ {
 		f.pixels[i] = WHITE()
 	}

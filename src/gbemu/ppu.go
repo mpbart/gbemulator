@@ -8,10 +8,11 @@ type PPU interface {
 }
 
 type ppu struct {
-	fifo         []RGBPixel
-	fetcher      Fetcher
-	lcdBuffer    [][]RGBPixel
-	currentPixel int
+	fifo           []RGBPixel
+	fetcher        Fetcher
+	lcdBuffer      [][]RGBPixel
+	currentPixel   int
+	fetchingSprite bool
 }
 
 func createPPU(mmu MMU) PPU {
@@ -21,10 +22,11 @@ func createPPU(mmu MMU) PPU {
 	}
 
 	return &ppu{
-		fifo:         make([]RGBPixel, 0),
-		fetcher:      createFetcher(mmu),
-		currentPixel: 0,
-		lcdBuffer:    buffer,
+		fifo:           make([]RGBPixel, 0),
+		fetcher:        createFetcher(mmu),
+		currentPixel:   0,
+		lcdBuffer:      buffer,
+		fetchingSprite: false,
 	}
 }
 
@@ -44,7 +46,7 @@ func (p *ppu) Reset() {
 }
 
 func (p *ppu) canShift() bool {
-	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH
+	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH && !p.fetchingSprite
 }
 
 func (p *ppu) LineFinished() bool {
@@ -54,7 +56,7 @@ func (p *ppu) LineFinished() bool {
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 	for _, sprite := range sprites {
 		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition() == p.currentPixel {
-			p.fetcher.Reset()
+			p.fetcher.Reset(uint16(p.currentPixel))
 			// 1. Stop current fetching
 			// 2. Start fetching sprite pixels
 			// 3. Overlay first 8 pixels from background with sprite pixels
