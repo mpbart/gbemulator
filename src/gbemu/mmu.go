@@ -108,7 +108,6 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 			}
 		*/
 		return m.OAM[address-0xFE00]
-	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
 		return m.IoPorts[address-0xFF00]
 	case address >= 0xFF80 && address <= 0xFFFE:
@@ -148,10 +147,11 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 			}
 		*/
 		m.OAM[address-0xFE00] = value
-	// TODO: Check for accessing unused memory locations and panic?
 	case address >= 0xFF00 && address <= 0xFF7F:
 		if address == 0xFF04 { // Writing to the divider register always resets it to 0
 			value = 0
+		} else if address == 0xFF46 {
+			m.startDMA(value)
 		}
 		m.IoPorts[address-0xFF00] = value
 	case address >= 0xFF80 && address <= 0xFFFE:
@@ -288,4 +288,11 @@ func (m *mmu) ClearHighestInterrupt() {
 func (m *mmu) FireInterrupt(interrupt Interrupt) {
 	val := m.ReadAt(0xFF0F) | (1 << uint(interrupt))
 	m.WriteByte(0xFF0F, val)
+}
+
+func (m *mmu) startDMA(value uint8) {
+	addr := uint16(value) << 8
+	for i := 0; i < 0xA0; i++ {
+		m.WriteByte(0xFE00+uint16(i), m.ReadAt(addr+uint16(i)))
+	}
 }
