@@ -61,9 +61,9 @@ func (p *ppu) LineFinished() bool {
 // Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
 // sprite and think it needs to re-fetch...
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
-	for idx, sprite := range sprites {
+	for _, sprite := range sprites {
 		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition() == p.currentPixel {
-			p.fetcher.Reset(uint16(p.currentPixel))
+			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH)
 			p.fetchingSprite = true
 			return
 			// 1. Stop current fetching

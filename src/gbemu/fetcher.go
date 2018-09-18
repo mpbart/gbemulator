@@ -1,23 +1,29 @@
 package main
 
 type FetchState int
+type FetchMode int
 
 const (
 	TILE_READ FetchState = iota
 	READ_DATA_0
 	READ_DATA_1
 	IDLE
+
+	BG_FETCH FetchMode = iota
+	SPRITE_FETCH
+	WINDOW_FETCH
 )
 
 type Fetcher interface {
 	Fetch(int) []RGBPixel
-	Reset(uint16)
+	Reset(uint16, FetchMode)
 }
 
 type fetcher struct {
 	currentState           FetchState
 	addresser              MemoryAddresser
 	mmu                    MMU
+	fetchMode              FetchMode
 	backgroundStartAddress uint16
 	windowStartAddress     uint16
 	currentTile            uint16
@@ -32,6 +38,7 @@ func createFetcher(mmu MMU) Fetcher {
 		currentState:           TILE_READ,
 		addresser:              CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
 		mmu:                    mmu,
+		fetchMode:              BG_FETCH,
 		backgroundStartAddress: mmu.BGTileMap(),
 		windowStartAddress:     mmu.WindowTileMap(),
 		currentPixel:           0,
@@ -63,15 +70,16 @@ func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 	if f.currentState == TILE_READ {
 		pixels := make([]RGBPixel, 8)
 		copy(pixels, f.pixels)
-		f.Reset(f.currentPixel + 8)
+		f.Reset(f.currentPixel+8, BG_FETCH) // May need to do something for fetch mode if fetching for window
 		return pixels
 	}
 	return nil
 }
 
 // Have reset take a param so that the ppu can tell it where to start fetching sprite pixels at
-func (f *fetcher) Reset(currentPixel uint16) {
+func (f *fetcher) Reset(currentPixel uint16, fetchMode FetchMode) {
 	f.currentPixel = currentPixel
+	f.fetchMode = fetchMode
 	for i := 0; i < len(f.pixels); i++ {
 		f.pixels[i] = WHITE()
 	}
@@ -118,4 +126,9 @@ func (f *fetcher) canRun() bool {
 	oldValue := f.doAction
 	f.doAction = !f.doAction
 	return oldValue
+}
+
+// Use this to index based on fetching bg vs. sprite vs. window
+func (f *fetcher) tileBaseAddress() uint16 {
+	return 0
 }
