@@ -35,14 +35,16 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 	if pixels := p.fetcher.Fetch(currentLine); pixels != nil {
 		if p.fetchingSprite {
 			p.overlayPixels(pixels)
+			p.shiftOutPixel(currentLine) // Need to do this here so that we don't detect the same pixel over and over again in isSpritePixel
 			p.fetchingSprite = false
+			return
 		} else {
 			p.shiftInPixels(pixels, currentLine)
 		}
 	}
 
-	if p.canShift() {
-		p.shiftOutPixel(currentLine, sprites)
+	if p.canShift(sprites) {
+		p.shiftOutPixel(currentLine)
 	}
 }
 
@@ -50,8 +52,8 @@ func (p *ppu) Reset() {
 	p.currentPixel = 0
 }
 
-func (p *ppu) canShift() bool {
-	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH && !p.fetchingSprite
+func (p *ppu) canShift(sprites []SpriteAttribute) bool {
+	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH && !p.fetchingSprite && !p.isSpritePixel(sprites)
 }
 
 func (p *ppu) LineFinished() bool {
@@ -60,21 +62,25 @@ func (p *ppu) LineFinished() bool {
 
 // Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
 // sprite and think it needs to re-fetch...
-func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
+func (p *ppu) shiftOutPixel(currentLine int) {
+	p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+	p.fifo = p.fifo[1:]
+	p.currentPixel += 1
+}
+
+func (p *ppu) isSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
 		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition() == p.currentPixel {
 			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH)
 			p.fetchingSprite = true
-			return
+			return true
 			// 1. Stop current fetching
 			// 2. Start fetching sprite pixels
 			// 3. Overlay first 8 pixels from background with sprite pixels
 			// 4. Resume fetching background
 		}
 	}
-	p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
-	p.fifo = p.fifo[1:]
-	p.currentPixel += 1
+	return false
 }
 
 func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
