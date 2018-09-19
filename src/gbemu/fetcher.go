@@ -78,7 +78,7 @@ func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 
 // Have reset take a param so that the ppu can tell it where to start fetching sprite pixels at
 func (f *fetcher) Reset(currentPixel uint16, fetchMode FetchMode) {
-	f.currentPixel = currentPixel
+	f.currentPixel = currentPixel % uint16(SCREEN_WIDTH)
 	f.fetchMode = fetchMode
 	for i := 0; i < len(f.pixels); i++ {
 		f.pixels[i] = WHITE()

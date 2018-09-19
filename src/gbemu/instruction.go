@@ -747,17 +747,17 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x10: &stopInstruction{basicInstruction{4, 1}}, // stop is actually 0x10 00 but This is a hack since I handle all opcodes as 1 byte values
 		0xF3: &diInstruction{basicInstruction{4, 0}},
 		0xFB: &eiInstruction{basicInstruction{4, 0}},
-		0xC3: &jumpInstruction{basicInstruction{12, 2}},
-		0xC2: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
-		0xCA: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
-		0xD2: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
-		0xDA: &conditionalJumpInstruction{basicInstruction{12, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
+		0xC3: &jumpInstruction{basicInstruction{16, 2}},
+		0xC2: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0xCA: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0xD2: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0xDA: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xE9: &jumpHlInstruction{basicInstruction{4, 0}, regs},
-		0x18: &jumpImmediateInstruction{basicInstruction{8, 1}, regs},
-		0x20: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
-		0x28: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
-		0x30: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
-		0x38: &conditionalJumpImmediateInstruction{basicInstruction{8, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
+		0x18: &jumpImmediateInstruction{basicInstruction{12, 1}, regs},
+		0x20: &conditionalJumpImmediateInstruction{basicInstruction{12, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
+		0x28: &conditionalJumpImmediateInstruction{basicInstruction{12, 1}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
+		0x30: &conditionalJumpImmediateInstruction{basicInstruction{12, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
+		0x38: &conditionalJumpImmediateInstruction{basicInstruction{12, 1}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
 		0xCD: &callInstruction{basicInstruction{12, 2}, regs},
 		0xC4: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
 		0xCC: &callConditionalInstruction{basicInstruction{12, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
@@ -1714,7 +1714,7 @@ func (i *jumpImmediateInstruction) Execute(params Parameters) Addresser {
 
 func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
-		newPC := i.regs.ReadPC() + uint16(params[0])
+		newPC := uint16(int(i.regs.ReadPC()) + 1 + len(params) + int(int8(params[0])))
 		return &address{true, newPC, false}
 	}
 	return &address{}

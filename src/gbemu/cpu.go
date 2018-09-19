@@ -92,12 +92,12 @@ func (c *cpu) IncrementPC(offset int) {
 func (c *cpu) Tick() {
 
 	if c.mmu.HasPendingInterrupt() {
-		c.mmu.DisableInterrupts()
 		interruptVector := c.mmu.GetNextPendingInterrupt()
 		c.mmu.ClearHighestInterrupt()
 		c.registers.PushSP(c.registers.ReadPC())
 		c.registers.WritePC(interruptVector)
 		c.InstructionTicks = 12
+		c.mmu.DisableInterrupts()
 	}
 
 	if c.InstructionTicks != 0 {
