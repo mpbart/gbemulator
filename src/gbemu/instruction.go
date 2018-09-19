@@ -1265,9 +1265,10 @@ func (i *subCarryInstruction) Execute(params Parameters) Addresser {
 
 func (i *andInstruction) Execute(params Parameters) Addresser {
 	result := i.regs.ReadRegister(a) & i.regs.ReadRegister(i.source)
-	flags := 0
+	var flags byte = 0x20
+
 	if result == 0 {
-		flags = 0x80
+		flags += 0x80
 	}
 	i.regs.WriteRegister(f, byte(flags))
 	i.regs.WriteRegister(a, result)
@@ -1276,9 +1277,9 @@ func (i *andInstruction) Execute(params Parameters) Addresser {
 
 func (i *andImmediateInstruction) Execute(params Parameters) Addresser {
 	result := i.regs.ReadRegister(a) & params[0]
-	flags := 0
+	var flags byte = 0x20
 	if result == 0 {
-		flags = 0x80
+		flags += 0x80
 	}
 	i.regs.WriteRegister(f, byte(flags))
 	i.regs.WriteRegister(a, result)
@@ -1292,9 +1293,10 @@ func (i *andFromMemoryInstruction) Execute(params Parameters) Addresser {
 	}
 	val := i.mmu.ReadAt(addr)
 	result := i.regs.ReadRegister(a) & val
-	flags := 0
+	var flags byte = 0x20
+
 	if result == 0 {
-		flags = 0x80
+		flags += 0x80
 	}
 	i.regs.WriteRegister(f, byte(flags))
 	i.regs.WriteRegister(a, result)
@@ -1381,8 +1383,8 @@ func (i *cpInstruction) Execute(params Parameters) Addresser {
 	aValue := i.regs.ReadRegister(a)
 	otherValue := i.regs.ReadRegister(i.source)
 	result := aValue - otherValue
-	flags := i.regs.ReadRegister(f)
-	flags = flags | 0x40
+	var flags byte = 0x40
+
 	if result == 0 {
 		flags += 0x80
 	}
@@ -1400,8 +1402,8 @@ func (i *cpImmediateInstruction) Execute(params Parameters) Addresser {
 	aValue := i.regs.ReadRegister(a)
 	otherValue := params[0]
 	result := aValue - otherValue
-	flags := i.regs.ReadRegister(f)
-	flags = flags | 0x40
+	var flags byte = 0x40
+
 	if result == 0 {
 		flags += 0x80
 	}
@@ -1424,8 +1426,7 @@ func (i *cpFromMemoryInstruction) Execute(params Parameters) Addresser {
 
 	otherValue := i.mmu.ReadAt(addr)
 	result := aValue - otherValue
-	flags := i.regs.ReadRegister(f)
-	flags = flags | 0x40
+	var flags byte = 0x40
 	if result == 0 {
 		flags += 0x80
 	}
@@ -1495,8 +1496,7 @@ func (i *decFromMemoryInstruction) Execute(params Parameters) Addresser {
 	}
 
 	newValue := i.mmu.ReadAt(addr) - 1
-	flags := i.regs.ReadRegister(f)
-	flags = flags & 0x10
+	flags := (i.regs.ReadRegister(f) & 0x10) | 0x40
 	if newValue == 0 {
 		flags += 0x80
 	}
@@ -1768,7 +1768,7 @@ func (i *ccfInstruction) Execute(params Parameters) Addresser {
 
 func (i *scfInstruction) Execute(params Parameters) Addresser {
 	flags := i.regs.ReadRegister(f)
-	flags = flags & 0x90
+	flags = flags & 0x80
 	flags += 0x10
 	i.regs.WriteRegister(f, flags)
 	return &address{}

@@ -436,7 +436,7 @@ func (i *swapInstruction) Execute(params Parameters) Addresser {
 
 	newVal := ((val & 0xF0) >> 4) + ((val & 0x0F) << 4)
 	if newVal == 0 {
-		flags += 0x10
+		flags += 0x80
 	}
 
 	i.regs.WriteRegister(i.source, newVal)
@@ -456,7 +456,7 @@ func (i *swapFromMemoryInstruction) Execute(params Parameters) Addresser {
 	var flags byte
 	flags = 0
 	if newVal == 0 {
-		flags += 0x10
+		flags += 0x80
 	}
 
 	i.mmu.WriteByte(addr, newVal)
@@ -762,9 +762,8 @@ func (i *srlFromMemoryInstruction) Execute(params Parameters) Addresser {
 func (i *bitInstruction) Execute(params Parameters) Addresser {
 	bit := byte(1 >> i.bitNumber)
 	val := i.regs.ReadRegister(i.source)
+	flags := (i.regs.ReadRegister(f) & 0x10) | 0x20
 
-	var flags byte
-	flags = 0x20
 	if (val & bit) == 0 {
 		flags += 0x80
 	}
@@ -779,9 +778,8 @@ func (i *bitFromMemoryInstruction) Execute(params Parameters) Addresser {
 		fmt.Println(err)
 	}
 	val := i.mmu.ReadAt(addr)
+	flags := (i.regs.ReadRegister(f) & 0x10) | 0x20
 
-	var flags byte
-	flags = 0x20
 	if (val & bit) == 0 {
 		flags += 0x80
 	}
