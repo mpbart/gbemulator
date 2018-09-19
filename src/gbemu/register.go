@@ -28,6 +28,7 @@ type Registers interface {
 	WriteRegister(Register, byte)
 	ReadRegisterPair(Register, Register) (uint16, error)
 	WriteRegisterPair(Register, Register, uint16) error
+	DumpContents()
 
 	ReadPC() uint16
 	WritePC(uint16)
@@ -138,4 +139,8 @@ func (r *registers) GetValue() byte {
 
 func (r *registers) GetTwoByteValue() uint16 {
 	return 0
+}
+
+func (r *registers) DumpContents() {
+	fmt.Printf("Register values:\na: %x\nb: %x\nc: %x\nd: %x\ne: %x\nh: %x\nl: %x\nf: %x\n", r.regs[a], r.regs[b], r.regs[c], r.regs[d], r.regs[e], r.regs[h], r.regs[l], r.regs[f])
 }

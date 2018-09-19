@@ -837,8 +837,8 @@ func (i *loadSpImmediateInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteRegister(i.dest1, params[0])
-	i.regs.WriteRegister(i.dest2, params[1])
+	i.regs.WriteRegister(i.dest1, params[1])
+	i.regs.WriteRegister(i.dest2, params[0])
 	return &address{}
 }
 
@@ -1476,8 +1476,7 @@ func (i *incFromMemoryInstruction) Execute(params Parameters) Addresser {
 
 func (i *decInstruction) Execute(params Parameters) Addresser {
 	newValue := i.regs.ReadRegister(i.source) - 1
-	flags := i.regs.ReadRegister(f)
-	flags = flags | 0x40
+	flags := (i.regs.ReadRegister(f) & 0x10) | 0x40
 	if newValue == 0 {
 		flags += 0x80
 	}
