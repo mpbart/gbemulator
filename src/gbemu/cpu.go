@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
 
 const TICKS_PER_REFRESH int = 70224
 
@@ -20,6 +24,7 @@ type cpu struct {
 	currentOpcode      byte
 	currentParamBytes  int
 	currentParams      Parameters
+	getInput           bool
 }
 
 func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
@@ -36,6 +41,7 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		currentOpcode:      0,
 		currentParamBytes:  0,
 		currentParams:      Parameters{},
+		getInput:           false,
 	}
 }
 
@@ -142,7 +148,14 @@ func (c *cpu) decodeNextInstruction() {
 func (c *cpu) executeInstruction() {
 	result := c.currentInstruction.Execute(c.currentParams)
 
-	//fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
+	fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
+	c.registers.DumpContents()
+	if c.registers.ReadPC() == 0x0220 || c.getInput {
+		c.getInput = true
+		fmt.Print("Hit enter to continue")
+		reader := bufio.NewReader(os.Stdin)
+		reader.ReadString('\n')
+	}
 
 	if result.ShouldJump() {
 		c.registers.WritePC(result.NewAddress())
