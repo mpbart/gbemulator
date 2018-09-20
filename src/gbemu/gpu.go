@@ -150,7 +150,7 @@ func (d *display) Tick() {
 
 	switch d.mode() {
 	case OAM_SEARCH_MODE:
-		if d.currentTicks == 80 { // TODO: I think this should maybe be 80, not 20
+		if d.currentTicks == 80 {
 			d.readOam()
 			d.mmu.SetLCDStatusMode(PIXEL_TRANSFER_MODE)
 			d.currentTicks = 0
@@ -170,10 +170,10 @@ func (d *display) Tick() {
 				d.mmu.SetLCDStatusMode(VBLANK_MODE)
 				d.lY += 1
 				d.currentTicks = 0
+				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 			} else {
 				d.lY += 1
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
-				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 				d.currentTicks = 0
 			}
 		} else {
