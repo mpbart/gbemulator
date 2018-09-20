@@ -4,9 +4,53 @@ import (
 	"fmt"
 )
 
+// I/O Registers:
+// 0xFF00 - P1   - Joypad input
+// 0xFF01 - SB   - Serial transfer data
+// 0xFF02 - SC   - Serial I/O control
+// 0xFF04 - DIV  - Divider register
+// 0xFF05 - TIMA - Timer counter
+// 0xFF06 - TMA  - Timer modulo
+// 0xFF07 - TAC  - Timer control
+// 0xFF0F - IF   - Interrupt flags
+// 0xFF10 - NR10 - Sound mode 1 sweep register
+// 0xFF11 - NR11 - Sound mode 1 length/wave pattern duty
+// 0xFF12 - NR12 - Sound mode 1 envelope
+// 0xFF13 - NR13 - Sound mode 1 frequency low
+// 0xFF14 - NR14 - Sound mode 1 frequency high
+// 0xFF16 - NR21 - Sound mode 2 length/wave pattern duty
+// 0xFF17 - NR22 - Sound mode 2 envelope
+// 0xFF18 - NR23 - Sound mode 2 frequency low
+// 0xFF19 - NR24 - Sound mode 2 frequency high
+// 0xFF1A - NR30 - Sound mode 3 on/off
+// 0xFF1B - NR31 - Sound mode 3 length/wave pattern duty
+// 0xFF1C - NR32 - Sound mode 3 output select
+// 0xFF1D - NR33 - Sound mode 3 frequency low
+// 0xFF1E - NR34 - Sound mode 3 frequency high
+// 0xFF20 - NR41 - Sound mode 4 length/wave pattern duty
+// 0xFF21 - NR42 - Sound mode 4 envelope
+// 0xFF22 - NR43 - Sound mode 4 polynomial counter
+// 0xFF23 - NR44 - Sound mode 4 counter
+// 0xFF24 - NR50 - Channel control
+// 0xFF25 - NR51 - Sound output selection
+// 0xFF26 - NR52 - Sound on/off
+// 0xFF30-0xFF3F - Wave pattern RAM
+// 0xFF40 - LCDC - LCD Control
+// 0xFF41 - STAT - LCDC Status
+// 0xFF42 - SCY  - Scroll Y
+// 0xFF43 - SCX  - Scroll X
+// 0xFF44 - LY   - LCDC Y-Coordinate
+// 0xFF45 - LYC  - LY Compare
+// 0xFF46 - DMA  - DMA transfer and address
+// 0xFF47 - BGP  - BG & Window pallette data
+// 0xFF48 - OBP0 - Object pallette 0
+// 0xFF49 - OBP1 - Object pallette 1
+// 0xFF4A - WY   - Window Y Position
+// 0xFF4B - WX   - Window X Position
+// 0xFFFF - IE   - Interrupt Enable
+
 type Interrupt int
 
-// TODO: Only VBLANK interupt is currently implemented. Do the others as well
 const (
 	VBLANK_INTERRUPT Interrupt = iota
 	LCDC_STATUS_INTERRUPT
