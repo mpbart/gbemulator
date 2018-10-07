@@ -16,7 +16,7 @@ const (
 
 type Fetcher interface {
 	Fetch(int) []RGBPixel
-	Reset(uint16, FetchMode)
+	Reset(uint16, FetchMode, SpriteAttribute)
 }
 
 type fetcher struct {
@@ -31,6 +31,7 @@ type fetcher struct {
 	tileData               uint16
 	doAction               bool
 	pixels                 []RGBPixel
+	oamEntry               SpriteAttribute
 }
 
 func createFetcher(mmu MMU) Fetcher {
@@ -46,6 +47,7 @@ func createFetcher(mmu MMU) Fetcher {
 		tileData:               0,
 		doAction:               false,
 		pixels:                 make([]RGBPixel, 8),
+		oamEntry:               nil,
 	}
 }
 
@@ -70,15 +72,15 @@ func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 	if f.currentState == TILE_READ {
 		pixels := make([]RGBPixel, 8)
 		copy(pixels, f.pixels)
-		f.Reset(f.currentPixel+8, BG_FETCH) // May need to do something for fetch mode if fetching for window
 		return pixels
 	}
 	return nil
 }
 
 // Have reset take a param so that the ppu can tell it where to start fetching sprite pixels at
-func (f *fetcher) Reset(currentPixel uint16, fetchMode FetchMode) {
+func (f *fetcher) Reset(currentPixel uint16, fetchMode FetchMode, spriteAttrs SpriteAttribute) {
 	f.currentPixel = currentPixel % uint16(SCREEN_WIDTH)
+	f.oamEntry = spriteAttrs
 	f.fetchMode = fetchMode
 	for i := 0; i < len(f.pixels); i++ {
 		f.pixels[i] = WHITE()
@@ -105,6 +107,25 @@ func (f *fetcher) readTile(currentLine int) {
 		yOffset, xOffset := uint16(currentLine>>3), uint16(f.currentPixel>>3)
 		f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset + xOffset))
 	} else if f.fetchMode == SPRITE_FETCH {
+		yOffset, xOffset := uint16(currentLine-f.oamEntry.GetYPosition()), uint16(int(f.currentPixel)-f.oamEntry.GetXPosition())
+
+		if f.oamEntry.HorizontalFlip() {
+			xOffset = 7 - xOffset
+		}
+
+		height := f.mmu.SpriteSize()
+		if f.oamEntry.VerticalFlip() {
+			yOffset = uint16(height) - 1 - yOffset
+		}
+
+		tileNum := f.oamEntry.GetTileNumber()
+		if height == 16 {
+			tileNum &^= 0x01
+			if yOffset >= 8 {
+				tileNum += 1
+			}
+		}
+		f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset + xOffset))
 	}
 }
 
@@ -114,14 +135,24 @@ func (f *fetcher) readData(byteNum uint8) {
 
 func (f *fetcher) setPixels() {
 	for i := 0; i < len(f.pixels); i++ {
-		f.pixels[i] = f.getColor(i)
+		if f.fetchMode == BG_FETCH {
+			f.pixels[i] = f.getBgColor(i)
+		} else if f.fetchMode == SPRITE_FETCH {
+			f.pixels[i] = f.getSpriteColor(i)
+		}
 	}
 }
 
-func (f *fetcher) getColor(i int) RGBPixel {
+func (f *fetcher) getBgColor(i int) RGBPixel {
 	lowerBit := GetBitUint16(f.tileData, uint(i))
 	upperBit := GetBitUint16(f.tileData, uint(i+7))
-	return f.mmu.ConvertNumToPixel(BitsToNum(upperBit, lowerBit))
+	return f.mmu.ConvertNumToBgPixel(BitsToNum(upperBit, lowerBit))
+}
+
+func (f *fetcher) getSpriteColor(i int) RGBPixel {
+	lowerBit := GetBitUint16(f.tileData, uint(i))
+	upperBit := GetBitUint16(f.tileData, uint(i+7))
+	return f.mmu.ConvertNumToSpritePixel(BitsToNum(upperBit, lowerBit), f.oamEntry.PaletteNumber())
 }
 
 // Method to run fetcher at half speed

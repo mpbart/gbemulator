@@ -1,8 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // I/O Registers:
 // 0xFF00 - P1   - Joypad input
@@ -73,7 +71,8 @@ type MMU interface {
 	BGTileMap() uint16
 	SpritesEnabled() bool
 	BGDisplayPriority() bool
-	ConvertNumToPixel(int) RGBPixel
+	ConvertNumToBgPixel(int) RGBPixel
+	ConvertNumToSpritePixel(int, int) RGBPixel
 	DisableInterrupts()
 	HasPendingInterrupt() bool
 	GetNextPendingInterrupt() uint16
@@ -276,6 +275,7 @@ func (m *mmu) Tick() {
 func (m *mmu) bgShadeForColor0() RGBPixel {
 	highBit := GetBit(m.ReadAt(0xFF47), 1)
 	lowBit := GetBit(m.ReadAt(0xFF47), 0)
+	fmt.Println(BitsToNum(highBit, lowBit))
 	return m.colorMapping[BitsToNum(highBit, lowBit)]
 }
 
@@ -297,7 +297,32 @@ func (m *mmu) bgShadeForColor3() RGBPixel {
 	return m.colorMapping[BitsToNum(highBit, lowBit)]
 }
 
-func (m *mmu) ConvertNumToPixel(i int) RGBPixel {
+func (m *mmu) spriteShadeForColor0(paletteNum int) RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 1)
+	lowBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 0)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) spriteShadeForColor1(paletteNum int) RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 3)
+	lowBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 2)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) spriteShadeForColor2(paletteNum int) RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 5)
+	lowBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 4)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) spriteShadeForColor3(paletteNum int) RGBPixel {
+	highBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 7)
+	lowBit := GetBit(m.ReadAt(0xFF48+uint16(paletteNum)), 6)
+	return m.colorMapping[BitsToNum(highBit, lowBit)]
+}
+
+func (m *mmu) ConvertNumToBgPixel(i int) RGBPixel {
+	fmt.Printf("BG Pixel of color: %v\n", i)
 	switch i {
 	case 0:
 		return m.bgShadeForColor0()
@@ -307,6 +332,19 @@ func (m *mmu) ConvertNumToPixel(i int) RGBPixel {
 		return m.bgShadeForColor2()
 	default:
 		return m.bgShadeForColor3()
+	}
+}
+
+func (m *mmu) ConvertNumToSpritePixel(i, paletteNum int) RGBPixel {
+	switch i {
+	case 0:
+		return m.spriteShadeForColor0(paletteNum)
+	case 1:
+		return m.spriteShadeForColor1(paletteNum)
+	case 2:
+		return m.spriteShadeForColor2(paletteNum)
+	default:
+		return m.spriteShadeForColor3(paletteNum)
 	}
 }
 

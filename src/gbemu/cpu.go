@@ -150,7 +150,7 @@ func (c *cpu) executeInstruction() {
 
 	fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
 	c.registers.DumpContents()
-	if c.registers.ReadPC() == 0x0220 || c.getInput {
+	if c.registers.ReadPC() == 0x021B || c.getInput {
 		c.getInput = true
 		fmt.Print("Hit enter to continue")
 		reader := bufio.NewReader(os.Stdin)

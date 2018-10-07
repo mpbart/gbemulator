@@ -44,7 +44,7 @@ func InitializeMMU() MMU {
 
 func loadROM(m MMU) error {
 	// Hardcode ROM name for now, maybe add in some command line arguments to parse this later
-	filename := "bgbtest.rom"
+	filename := "tetris.gb"
 	f, err := ioutil.ReadFile(filename)
 
 	if err != nil {

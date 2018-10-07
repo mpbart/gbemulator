@@ -8,11 +8,12 @@ type PPU interface {
 }
 
 type ppu struct {
-	fifo           []RGBPixel
-	fetcher        Fetcher
-	lcdBuffer      [][]RGBPixel
-	currentPixel   int
-	fetchingSprite bool
+	fifo                      []RGBPixel
+	fetcher                   Fetcher
+	lcdBuffer                 [][]RGBPixel
+	currentPixel              int
+	currentSpritePixelFetched bool
+	fetchingSprite            bool
 }
 
 func createPPU(mmu MMU) PPU {
@@ -22,11 +23,12 @@ func createPPU(mmu MMU) PPU {
 	}
 
 	return &ppu{
-		fifo:           make([]RGBPixel, 0),
-		fetcher:        createFetcher(mmu),
-		currentPixel:   0,
-		lcdBuffer:      buffer,
-		fetchingSprite: false,
+		fifo:                      make([]RGBPixel, 0),
+		fetcher:                   createFetcher(mmu),
+		currentPixel:              0,
+		currentSpritePixelFetched: false,
+		lcdBuffer:                 buffer,
+		fetchingSprite:            false,
 	}
 }
 
@@ -34,10 +36,10 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 	// Shifts in 8 pixels at a time from the fetcher, if they are available
 	if pixels := p.fetcher.Fetch(currentLine); pixels != nil {
 		if p.fetchingSprite {
+			p.currentSpritePixelFetched = true
 			p.overlayPixels(pixels)
-			p.shiftOutPixel(currentLine, sprites) // Need to do this here so that we don't detect the same pixel over and over again in isSpritePixel
 			p.fetchingSprite = false
-			return
+			p.fetcher.Reset(uint16(p.currentPixel), BG_FETCH, nil)
 		} else {
 			p.shiftInPixels(pixels, currentLine)
 		}
@@ -63,17 +65,18 @@ func (p *ppu) LineFinished() bool {
 // Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
 // sprite and think it needs to re-fetch...
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
-	if !p.isSpritePixel(sprites) {
+	if !p.isUnfetchedSpritePixel(sprites) {
 		p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
 		p.fifo = p.fifo[1:]
 		p.currentPixel += 1
+		p.currentSpritePixelFetched = false
 	}
 }
 
-func (p *ppu) isSpritePixel(sprites []SpriteAttribute) bool {
+func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
-		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == p.currentPixel {
-			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH)
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == p.currentPixel && !p.currentSpritePixelFetched {
+			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH, sprite)
 			p.fetchingSprite = true
 			return true
 			// 1. Stop current fetching

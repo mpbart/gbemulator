@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"sort"
+	"bufio"
+	"os"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -37,6 +39,7 @@ type Display interface {
 	Render()
 	Tick()
 	Start()
+	CurrentLine()
 }
 
 // Notes:
@@ -64,7 +67,7 @@ type Display interface {
 
 // The 4 methods below are intended to be used as constants
 func WHITE() RGBPixel {
-	return RGBPixel{0, 0, 0}
+	return RGBPixel{255, 255, 255}
 }
 
 func LIGHT_GRAY() RGBPixel {
@@ -212,13 +215,18 @@ func (d *display) mode() uint8 {
 func (d *display) readOam() {
 	d.visibleSprites = nil
 	for i := 0; i < 40; i++ {
-		byte0 := d.mmu.ReadAt(uint16(0xFF00 + i*4))
-		byte1 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 1))
-		byte2 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 2))
-		byte3 := d.mmu.ReadAt(uint16(0xFF00 + i*4 + 3))
+		byte0 := d.mmu.ReadAt(uint16(0xFE00 + i*4))
+		byte1 := d.mmu.ReadAt(uint16(0xFE00 + i*4 + 1))
+		byte2 := d.mmu.ReadAt(uint16(0xFE00 + i*4 + 2))
+		byte3 := d.mmu.ReadAt(uint16(0xFE00 + i*4 + 3))
 		attr := fromBytes([]uint8{byte0, byte1, byte2, byte3})
 
-		if d.lY >= attr.GetYPosition()-16 && d.lY < attr.GetYPosition()+d.spriteHeight() {
+		fmt.Printf("%x\n", attr.GetYPosition())
+		fmt.Printf("Current Line: %v\n", d.lY)
+		fmt.Print("Hit enter to continue")
+		reader := bufio.NewReader(os.Stdin)
+		reader.ReadString('\n')
+		if d.lY >= attr.GetYPosition()-16 && d.lY < attr.GetYPosition()-16+d.spriteHeight() {
 			d.visibleSprites = append(d.visibleSprites, attr)
 		}
 
@@ -238,4 +246,8 @@ func (d *display) spriteHeight() int {
 	} else {
 		return 16
 	}
+}
+
+func (d *display) CurrentLine() int {
+	return d.lY
 }
