@@ -275,7 +275,6 @@ func (m *mmu) Tick() {
 func (m *mmu) bgShadeForColor0() RGBPixel {
 	highBit := GetBit(m.ReadAt(0xFF47), 1)
 	lowBit := GetBit(m.ReadAt(0xFF47), 0)
-	fmt.Println(BitsToNum(highBit, lowBit))
 	return m.colorMapping[BitsToNum(highBit, lowBit)]
 }
 
@@ -322,7 +321,6 @@ func (m *mmu) spriteShadeForColor3(paletteNum int) RGBPixel {
 }
 
 func (m *mmu) ConvertNumToBgPixel(i int) RGBPixel {
-	fmt.Printf("BG Pixel of color: %v\n", i)
 	switch i {
 	case 0:
 		return m.bgShadeForColor0()
