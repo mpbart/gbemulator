@@ -107,7 +107,7 @@ func (f *fetcher) nextState() FetchState {
 func (f *fetcher) readTile(currentLine int) {
 	if f.fetchMode == BG_FETCH {
 		yOffset, xOffset := uint16(currentLine>>3), uint16(f.currentPixel>>3)
-		f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset + xOffset))
+		f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset*32 + xOffset))
 	} else if f.fetchMode == SPRITE_FETCH {
 		yOffset, xOffset := uint16(currentLine-f.oamEntry.GetYPosition()), uint16(int(f.currentPixel)-f.oamEntry.GetXPosition())
 
