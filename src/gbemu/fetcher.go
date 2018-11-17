@@ -60,9 +60,9 @@ func (f *fetcher) Fetch(currentLine int) []RGBPixel {
 	case TILE_READ:
 		f.readTile(currentLine)
 	case READ_DATA_0:
-		f.readData(0)
+		f.readData(0, currentLine)
 	case READ_DATA_1:
-		f.readData(1)
+		f.readData(1, currentLine)
 	case IDLE:
 		f.setPixels()
 	}
@@ -131,8 +131,11 @@ func (f *fetcher) readTile(currentLine int) {
 	}
 }
 
-func (f *fetcher) readData(byteNum uint8) {
-	f.tileData += uint16(f.mmu.ReadAt(f.addresser.GetAddress(uint8(f.currentTile)+byteNum))) << (8 * byteNum)
+func (f *fetcher) readData(byteNum uint8, currentLine int) {
+	lineOffset := uint16((currentLine & 0x07) << 1)
+	memoryAddr := f.addresser.GetAddress(uint8(f.currentTile)) + uint16(byteNum) + lineOffset
+	value := f.mmu.ReadAt(memoryAddr)
+	f.tileData += uint16(value) << (8 * byteNum)
 }
 
 func (f *fetcher) setPixels() {
