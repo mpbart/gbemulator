@@ -39,9 +39,10 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 			p.currentSpritePixelFetched = true
 			p.overlayPixels(pixels)
 			p.fetchingSprite = false
-			p.fetcher.Reset(uint16(p.currentPixel), BG_FETCH, nil)
+			p.fetcher.Reset(p.currentPixel, BG_FETCH, nil)
 		} else {
 			p.shiftInPixels(pixels, currentLine)
+			p.fetcher.Reset(p.currentPixel, BG_FETCH, nil)
 		}
 	}
 
