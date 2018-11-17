@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/go-gl/gl/v2.1/gl"
@@ -221,11 +219,6 @@ func (d *display) readOam() {
 		byte3 := d.mmu.ReadAt(uint16(0xFE00 + i*4 + 3))
 		attr := fromBytes([]uint8{byte0, byte1, byte2, byte3})
 
-		fmt.Printf("%x\n", attr.GetYPosition())
-		fmt.Printf("Current Line: %v\n", d.lY)
-		fmt.Print("Hit enter to continue")
-		reader := bufio.NewReader(os.Stdin)
-		reader.ReadString('\n')
 		if d.lY >= attr.GetYPosition()-16 && d.lY < attr.GetYPosition()-16+d.spriteHeight() {
 			d.visibleSprites = append(d.visibleSprites, attr)
 		}

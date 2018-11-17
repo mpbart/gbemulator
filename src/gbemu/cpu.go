@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
+//	"bufio"
 	"fmt"
-	"os"
+//	"os"
 )
 
 const TICKS_PER_REFRESH int = 70224
@@ -148,14 +148,14 @@ func (c *cpu) decodeNextInstruction() {
 func (c *cpu) executeInstruction() {
 	result := c.currentInstruction.Execute(c.currentParams)
 
-	fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
-	c.registers.DumpContents()
-	if c.registers.ReadPC() == 0x021B || c.getInput {
-		c.getInput = true
-		fmt.Print("Hit enter to continue")
-		reader := bufio.NewReader(os.Stdin)
-		reader.ReadString('\n')
-	}
+	//fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
+	//c.registers.DumpContents()
+	//if c.registers.ReadPC() == 0x021B || c.getInput {
+		//c.getInput = true
+		//fmt.Print("Hit enter to continue")
+		//reader := bufio.NewReader(os.Stdin)
+		//reader.ReadString('\n')
+	//}
 
 	if result.ShouldJump() {
 		c.registers.WritePC(result.NewAddress())
