@@ -45,7 +45,7 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 		}
 	}
 
-	if p.canShift() {
+	if p.canShiftOut() {
 		p.shiftOutPixel(currentLine, sprites)
 	}
 }
