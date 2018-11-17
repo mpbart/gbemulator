@@ -141,23 +141,23 @@ func (f *fetcher) readData(byteNum uint8, currentLine int) {
 func (f *fetcher) setPixels() {
 	for i := 0; i < len(f.pixels); i++ {
 		if f.fetchMode == BG_FETCH {
-			f.pixels[i] = f.getBgColor(i)
+			f.pixels[i] = f.getBgColor(7-i) // The leftmost pixel corresponds to bit 7
 		} else if f.fetchMode == SPRITE_FETCH {
-			f.pixels[i] = f.getSpriteColor(i)
+			f.pixels[i] = f.getSpriteColor(7-i) // The leftmost pixel corresponds to bit 7
 		}
 	}
 }
 
 func (f *fetcher) getBgColor(i int) RGBPixel {
 	lowerBit := GetBitUint16(f.tileData, uint(i))
-	upperBit := GetBitUint16(f.tileData, uint(i+7))
-	return f.mmu.ConvertNumToBgPixel(BitsToNum(upperBit, lowerBit))
+	upperBit := GetBitUint16(f.tileData, uint(i+8))
+	return f.mmu.ConvertNumToBgPixel(BitsToNum(lowerBit, upperBit))
 }
 
 func (f *fetcher) getSpriteColor(i int) RGBPixel {
 	lowerBit := GetBitUint16(f.tileData, uint(i))
-	upperBit := GetBitUint16(f.tileData, uint(i+7))
-	return f.mmu.ConvertNumToSpritePixel(BitsToNum(upperBit, lowerBit), f.oamEntry.PaletteNumber())
+	upperBit := GetBitUint16(f.tileData, uint(i+8))
+	return f.mmu.ConvertNumToSpritePixel(BitsToNum(lowerBit, upperBit), f.oamEntry.PaletteNumber())
 }
 
 // Method to run fetcher at half speed
