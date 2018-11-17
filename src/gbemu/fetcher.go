@@ -141,9 +141,9 @@ func (f *fetcher) readData(byteNum uint8, currentLine int) {
 func (f *fetcher) setPixels() {
 	for i := 0; i < len(f.pixels); i++ {
 		if f.fetchMode == BG_FETCH {
-			f.pixels[i] = f.getBgColor(7-i) // The leftmost pixel corresponds to bit 7
+			f.pixels[i] = f.getBgColor(7 - i) // The leftmost pixel corresponds to bit 7
 		} else if f.fetchMode == SPRITE_FETCH {
-			f.pixels[i] = f.getSpriteColor(7-i) // The leftmost pixel corresponds to bit 7
+			f.pixels[i] = f.getSpriteColor(7 - i) // The leftmost pixel corresponds to bit 7
 		}
 	}
 }
