@@ -11,7 +11,7 @@ type ppu struct {
 	fifo                      []RGBPixel
 	fetcher                   Fetcher
 	lcdBuffer                 [][]RGBPixel
-	currentPixel              int
+	currentPixel              uint16
 	currentSpritePixelFetched bool
 	fetchingSprite            bool
 }
@@ -54,12 +54,12 @@ func (p *ppu) Reset() {
 	p.currentPixel = 0
 }
 
-func (p *ppu) canShift() bool {
-	return len(p.fifo) > 8 && p.currentPixel < SCREEN_WIDTH && !p.fetchingSprite
+func (p *ppu) canShiftOut() bool {
+	return len(p.fifo) > 8 && p.currentPixel < uint16(SCREEN_WIDTH) && !p.fetchingSprite
 }
 
 func (p *ppu) LineFinished() bool {
-	return p.currentPixel == SCREEN_WIDTH
+	return p.currentPixel == uint16(SCREEN_WIDTH)
 }
 
 // Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
@@ -75,7 +75,7 @@ func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 
 func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
-		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == p.currentPixel && !p.currentSpritePixelFetched {
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.currentPixel) && !p.currentSpritePixelFetched {
 			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH, sprite)
 			p.fetchingSprite = true
 			return true
