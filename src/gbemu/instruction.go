@@ -282,10 +282,12 @@ type stopInstruction struct {
 
 type diInstruction struct {
 	basicInstruction
+	cpu CPU
 }
 
 type eiInstruction struct {
 	basicInstruction
+	cpu CPU
 }
 
 type jumpInstruction struct {
@@ -525,7 +527,7 @@ type extendedInstruction struct {
 	extendedInstructions map[byte]ExtendedInstruction
 }
 
-func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
+func CreateInstructions(regs Registers, mmu MMU, cpu CPU) map[byte]Instruction {
 	return map[byte]Instruction{
 		0x00: &noopInstruction{basicInstruction{1, 0}},
 
@@ -745,8 +747,8 @@ func CreateInstructions(regs Registers, mmu MMU) map[byte]Instruction {
 		0x37: &scfInstruction{basicInstruction{4, 0}, regs},
 		0x76: &haltInstruction{basicInstruction{4, 0}},
 		0x10: &stopInstruction{basicInstruction{4, 1}}, // stop is actually 0x10 00 but This is a hack since I handle all opcodes as 1 byte values
-		0xF3: &diInstruction{basicInstruction{4, 0}},
-		0xFB: &eiInstruction{basicInstruction{4, 0}},
+		0xF3: &diInstruction{basicInstruction{4, 0}, cpu},
+		0xFB: &eiInstruction{basicInstruction{4, 0}, cpu},
 		0xC3: &jumpInstruction{basicInstruction{16, 2}},
 		0xC2: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 0 }},
 		0xCA: &conditionalJumpInstruction{basicInstruction{16, 2}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
@@ -1676,10 +1678,12 @@ func (i *stopInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *diInstruction) Execute(params Parameters) Addresser {
+	i.cpu.SetInterruptMasterEnable(false)
 	return &address{}
 }
 
 func (i *eiInstruction) Execute(params Parameters) Addresser {
+	i.cpu.SetInterruptMasterEnable(true)
 	return &address{}
 }
 

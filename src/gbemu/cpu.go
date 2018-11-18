@@ -11,38 +11,44 @@ const TICKS_PER_REFRESH int = 70224
 type CPU interface {
 	Reset()
 	Tick()
+	SetInterruptMasterEnable(bool)
 }
 
 type cpu struct {
-	mmu                MMU
-	registers          Registers
-	instructions       map[byte]Instruction
-	stopped            bool
-	InstructionTicks   int
-	exitChannel        chan bool
-	currentInstruction Instruction
-	currentOpcode      byte
-	currentParamBytes  int
-	currentParams      Parameters
-	getInput           bool
+	mmu                   MMU
+	registers             Registers
+	instructions          map[byte]Instruction
+	stopped               bool
+	InstructionTicks      int
+	exitChannel           chan bool
+	currentInstruction    Instruction
+	currentOpcode         byte
+	currentParamBytes     int
+	currentParams         Parameters
+	getInput              bool
+	interruptMasterEnable bool
 }
 
 func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 	registers := CreateRegisters(mmu)
 
-	return &cpu{
-		mmu:                mmu,
-		registers:          registers,
-		instructions:       CreateInstructions(registers, mmu),
-		stopped:            false,
-		InstructionTicks:   4, // Current assumption is that the first instruction is always 4 cycles. May need to refactor and hold instructions as state to fix this
-		exitChannel:        exitChannel,
-		currentInstruction: nil,
-		currentOpcode:      0,
-		currentParamBytes:  0,
-		currentParams:      Parameters{},
-		getInput:           false,
+	cpu := &cpu{
+		mmu:                   mmu,
+		registers:             registers,
+		instructions:          nil,
+		stopped:               false,
+		InstructionTicks:      4, // Current assumption is that the first instruction is always 4 cycles. May need to refactor and hold instructions as state to fix this
+		exitChannel:           exitChannel,
+		currentInstruction:    nil,
+		currentOpcode:         0,
+		currentParamBytes:     0,
+		currentParams:         Parameters{},
+		getInput:              false,
+		interruptMasterEnable: false,
 	}
+
+	cpu.instructions = CreateInstructions(registers, mmu, cpu)
+	return cpu
 }
 
 func (cpu *cpu) Reset() {
@@ -97,13 +103,13 @@ func (c *cpu) IncrementPC(offset int) {
 
 func (c *cpu) Tick() {
 
-	if c.mmu.HasPendingInterrupt() {
+	if c.mmu.HasPendingInterrupt() && c.interruptMasterEnable {
 		interruptVector := c.mmu.GetNextPendingInterrupt()
 		c.mmu.ClearHighestInterrupt()
 		c.registers.PushSP(c.registers.ReadPC())
 		c.registers.WritePC(interruptVector)
 		c.InstructionTicks = 12
-		c.mmu.DisableInterrupts()
+		c.interruptMasterEnable = false
 	}
 
 	if c.InstructionTicks != 0 {
@@ -166,4 +172,8 @@ func (c *cpu) executeInstruction() {
 	if result.IsStopped() {
 		c.stopped = true
 	}
+}
+
+func (c *cpu) SetInterruptMasterEnable(value bool) {
+	c.interruptMasterEnable = value
 }

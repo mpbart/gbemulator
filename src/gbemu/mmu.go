@@ -73,7 +73,6 @@ type MMU interface {
 	BGDisplayPriority() bool
 	ConvertNumToBgPixel(int) RGBPixel
 	ConvertNumToSpritePixel(int, int) RGBPixel
-	DisableInterrupts()
 	HasPendingInterrupt() bool
 	GetNextPendingInterrupt() uint16
 	ClearHighestInterrupt()
@@ -344,10 +343,6 @@ func (m *mmu) ConvertNumToSpritePixel(i, paletteNum int) RGBPixel {
 	default:
 		return m.spriteShadeForColor3(paletteNum)
 	}
-}
-
-func (m *mmu) DisableInterrupts() {
-	m.WriteByte(0xFFFF, 0)
 }
 
 func (m *mmu) HasPendingInterrupt() bool {
