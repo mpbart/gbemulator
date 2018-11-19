@@ -111,7 +111,7 @@ func CreateDisplay(mmu MMU, cpu CPU, timer Timer) {
 	d := &display{
 		window:         window,
 		mmu:            mmu,
-		addresser:      CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
+		addresser:      CreateMemoryAddresser(mmu),
 		ppu:            createPPU(mmu),
 		currentTicks:   0,
 		lY:             0,

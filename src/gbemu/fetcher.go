@@ -37,7 +37,7 @@ type fetcher struct {
 func createFetcher(mmu MMU) Fetcher {
 	return &fetcher{
 		currentState:           TILE_READ,
-		addresser:              CreateMemoryAddresser(mmu.BGAndWindowAddressMode()),
+		addresser:              CreateMemoryAddresser(mmu),
 		mmu:                    mmu,
 		fetchMode:              BG_FETCH,
 		backgroundStartAddress: mmu.BGTileMap(),
