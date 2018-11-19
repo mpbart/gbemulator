@@ -6,6 +6,10 @@ import (
 	//	"os"
 )
 
+// Currently Investigating:
+//	* tile addressing scheme changes at 0x0239 or somewhere before it. Does not look like 
+//    we are changing with it because we are not clearing the screen correctly.
+
 const TICKS_PER_REFRESH int = 70224
 
 type CPU interface {
