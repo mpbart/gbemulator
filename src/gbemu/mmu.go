@@ -7,6 +7,7 @@ import "fmt"
 // 0xFF01 - SB   - Serial transfer data
 // 0xFF02 - SC   - Serial I/O control
 // 0xFF04 - DIV  - Divider register
+// 0xFF04 - DIV  - Divider register
 // 0xFF05 - TIMA - Timer counter
 // 0xFF06 - TMA  - Timer modulo
 // 0xFF07 - TAC  - Timer control
@@ -46,6 +47,51 @@ import "fmt"
 // 0xFF4A - WY   - Window Y Position
 // 0xFF4B - WX   - Window X Position
 // 0xFFFF - IE   - Interrupt Enable
+const (
+	JOYPAD_INPUT                    uint16 = 0xFF00
+	SERIAL_TRANSFER_DATA            uint16 = 0xFF01
+	SERIAL_IO_CONTROL               uint16 = 0xFF02
+	DIVIDER_REGISTER                uint16 = 0xFF04
+	TIMER_REGISTER                  uint16 = 0xFF05
+	TIMER_MODULO                    uint16 = 0xFF06
+	TIMER_CONTROL                   uint16 = 0xFF07
+	INTERRUPT_FLAGS                 uint16 = 0xFF0F
+	SWEEP_REGISTER                  uint16 = 0xFF10
+	SOUND_MODE_1_WAVE_PATTERN       uint16 = 0xFF11
+	SOUND_MODE_1_ENVELOPE           uint16 = 0xFF12
+	SOUND_MODE_1_FREQUENCY_LOW      uint16 = 0xFF13
+	SOUND_MODE_1_FREQUENCY_HIGH     uint16 = 0xFF14
+	SOUND_MODE_2_WAVE_PATTERN       uint16 = 0xFF16
+	SOUND_MODE_2_ENVELOPE           uint16 = 0xFF17
+	SOUND_MODE_2_FREQUENCY_LOW      uint16 = 0xFF18
+	SOUND_MODE_2_FREQUENCY_HIGH     uint16 = 0xFF19
+	SOUND_MODE_3_ON_OFF             uint16 = 0xFF1A
+	SOUND_MODE_3_WAVE_PATTERN       uint16 = 0xFF1B
+	SOUND_MODE_3_OUTPUT_SELECT      uint16 = 0xFF1C
+	SOUND_MODE_3_FREQUENCY_LOW      uint16 = 0xFF1D
+	SOUND_MODE_3_FREQUENCY_HIGH     uint16 = 0xFF1E
+	SOUND_MODE_4_WAVE_PATTERN       uint16 = 0xFF20
+	SOUND_MODE_4_ENVELOPE           uint16 = 0xFF21
+	SOUND_MODE_4_POLYNOMIAL_COUNTER uint16 = 0xFF22
+	SOUND_MODE_4_COUNTER            uint16 = 0xFF23
+	CHANNEL_CONTROL                 uint16 = 0xFF24
+	SOUND_OUTPUT_SELECTION          uint16 = 0xFF25
+	SOUND_ON_OFF                    uint16 = 0xFF26
+	// WAVE_PATTERN_RAM                uint16 = 0xFF30 - 0xFF3F
+	LCD_CONTROL                     uint16 = 0xFF40
+	LCDC_STATUS                     uint16 = 0xFF41
+	SCROLL_Y                        uint16 = 0xFF42
+	SCROLL_X                        uint16 = 0xFF43
+	LCDC_Y_COORDINATE               uint16 = 0xFF44
+	LY_COMPARE                      uint16 = 0xFF45
+	DMA_TRANSFER_ADDRESS            uint16 = 0xFF46
+	BG_WINDOW_PALLETTE_DATA         uint16 = 0xFF47
+	OBJECT_PALLETTE_0               uint16 = 0xFF48
+	OBJECT_PALLETTE_1               uint16 = 0xFF49
+	WINDOW_Y_POSITION               uint16 = 0xFF4A
+	WINDOW_X_POSITION               uint16 = 0xFF4B
+	INTERRUPT_ENABLE                uint16 = 0xFFFF
+)
 
 type Interrupt int
 

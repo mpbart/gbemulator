@@ -1,12 +1,5 @@
 package main
 
-const (
-	DIVIDER_REGISTER uint16 = 0xFF04
-	TIMER_REGISTER   uint16 = 0xFF05
-	TIMER_MODULO     uint16 = 0xFF06
-	TIMER_CONTROL    uint16 = 0xFF07
-)
-
 type Timer interface {
 	Tick()
 }

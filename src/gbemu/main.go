@@ -21,14 +21,20 @@ func main() {
 
 	mmu := InitializeMMU()
 	cpu := InitializeCPU(exitChannel, mmu)
+	timer := InitializeTimer(mmu)
 
-	CreateDisplay(mmu, cpu) // GLFW wil not work if the window pointer is passed around so this function never returns
+	CreateDisplay(mmu, cpu, timer) // GLFW wil not work if the window pointer is passed around so this function never returns
 }
 
 func InitializeCPU(exitChannel chan bool, mmu MMU) CPU {
 	cpu := CreateCPU(exitChannel, mmu)
 	cpu.Reset()
 	return cpu
+}
+
+func InitializeTimer(mmu MMU) Timer {
+	timer := CreateTimer(mmu)
+	return timer
 }
 
 func InitializeMMU() MMU {

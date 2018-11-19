@@ -80,7 +80,7 @@ func BLACK() RGBPixel {
 	return RGBPixel{0, 0, 0}
 }
 
-func CreateDisplay(mmu MMU, cpu CPU) {
+func CreateDisplay(mmu MMU, cpu CPU, timer Timer) {
 	err := glfw.Init()
 	if err != nil {
 		fmt.Println(err)
@@ -117,7 +117,7 @@ func CreateDisplay(mmu MMU, cpu CPU) {
 		lY:             0,
 		visibleSprites: make([]SpriteAttribute, 10),
 	}
-	d.Simulate(cpu, mmu)
+	d.Simulate(cpu, mmu, timer)
 }
 
 func (d *display) Render() {
@@ -136,10 +136,11 @@ func (d *display) Render() {
 	d.window.SwapBuffers()
 }
 
-func (d *display) Simulate(cpu CPU, mmu MMU) {
+func (d *display) Simulate(cpu CPU, mmu MMU, timer Timer) {
 	for {
 		cpu.Tick()
 		mmu.Tick()
+		timer.Tick()
 		d.Tick()
 	}
 }
@@ -170,10 +171,12 @@ func (d *display) Tick() {
 			if d.lY == SCREEN_HEIGHT-1 {
 				d.mmu.SetLCDStatusMode(VBLANK_MODE)
 				d.lY += 1
+				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
 				d.currentTicks = 0
 				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 			} else {
 				d.lY += 1
+				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
 			}
@@ -189,6 +192,7 @@ func (d *display) Tick() {
 				d.updateDisplay()
 			} else {
 				d.lY += 1
+				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
 				d.currentTicks = 0
 			}
 		} else {
