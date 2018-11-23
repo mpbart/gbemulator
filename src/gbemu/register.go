@@ -142,5 +142,5 @@ func (r *registers) GetTwoByteValue() uint16 {
 }
 
 func (r *registers) DumpContents() {
-	fmt.Printf("Register values:\na: %x\nb: %x\nc: %x\nd: %x\ne: %x\nh: %x\nl: %x\nf: %x\n", r.regs[a], r.regs[b], r.regs[c], r.regs[d], r.regs[e], r.regs[h], r.regs[l], r.regs[f])
+	fmt.Printf("Register values:\na: %x\nb: %x\nc: %x\nd: %x\ne: %x\nh: %x\nl: %x\nf: %x\nsp: %x\n", r.regs[a], r.regs[b], r.regs[c], r.regs[d], r.regs[e], r.regs[h], r.regs[l], r.regs[f], r.SP)
 }

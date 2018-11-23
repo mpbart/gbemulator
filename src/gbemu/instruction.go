@@ -61,6 +61,14 @@ type loadRegisterInstruction struct {
 	regs   Registers
 }
 
+type loadHlRegisterInstruction struct {
+	basicInstruction
+	source1 Register
+	source2 Register
+	regs    Registers
+	mmu     MMU
+}
+
 type loadMemoryWithRegisterInstruction struct {
 	basicInstruction
 	memAddr uint16
@@ -609,10 +617,7 @@ func CreateInstructions(regs Registers, mmu MMU, cpu CPU) map[byte]Instruction {
 		0x73: &writeMemoryInstruction{basicInstruction{8, 0}, h, l, e, regs, mmu},
 		0x74: &writeMemoryInstruction{basicInstruction{8, 0}, h, l, h, regs, mmu},
 		0x75: &writeMemoryInstruction{basicInstruction{8, 0}, h, l, l, regs, mmu},
-		// TODO: wtf is this
-		// =================
-		// ??? 0x36: &loadRegisterInstruction{8, 0, hl, regs, mmu},
-		// ================= TODO: how do you put 16 bits into an 8 bit register?
+		0x36: &loadHlRegisterInstruction{basicInstruction{12, 1}, h, l, regs, mmu},
 		0x02: &writeMemoryInstruction{basicInstruction{8, 0}, b, c, a, regs, mmu},
 		0x12: &writeMemoryInstruction{basicInstruction{8, 0}, d, e, a, regs, mmu},
 		0x77: &writeMemoryInstruction{basicInstruction{8, 0}, h, l, a, regs, mmu},
@@ -831,7 +836,7 @@ func (i *loadMemoryWithRegisterInstruction) Execute(params Parameters) Addresser
 }
 
 func (i *loadSpImmediateInstruction) Execute(params Parameters) Addresser {
-	addr := uint16(params[0])<<8 + uint16(params[1])
+	addr := uint16(params[0]) + uint16(params[1])<<8
 	spValue := i.regs.ReadSP()
 	i.mmu.WriteByte(addr, byte(spValue&0x00FF))
 	i.mmu.WriteByte(addr+0x02, byte(spValue&0xFF00>>8))
@@ -845,7 +850,7 @@ func (i *loadTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *loadSpTwoByteImmediateInstruction) Execute(params Parameters) Addresser {
-	i.regs.WriteSP(uint16(params[0])<<8 + uint16(params[1]))
+	i.regs.WriteSP(uint16(params[0]) + uint16(params[1])<<8)
 	return &address{}
 }
 
@@ -924,7 +929,7 @@ func (i *loadRegisterFromMemoryInstruction) Execute(params Parameters) Addresser
 }
 
 func (i *loadImmediateRegisterFromMemoryInstruction) Execute(params Parameters) Addresser {
-	memVal := i.mmu.ReadAt(uint16(params[0])<<8 + uint16(params[1]))
+	memVal := i.mmu.ReadAt(uint16(params[0]) + uint16(params[1])<<8)
 	i.regs.WriteRegister(i.dest, memVal)
 	return &address{}
 }
@@ -939,7 +944,7 @@ func (i *pushInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *writeMemoryImmediateInstruction) Execute(params Parameters) Addresser {
-	addr := uint16(params[0])<<8 + uint16(params[1])
+	addr := uint16(params[0]) + uint16(params[1])<<8
 	val := i.regs.ReadRegister(a)
 	i.mmu.WriteByte(addr, val)
 	return &address{}
@@ -1530,6 +1535,16 @@ func (i *ldhlspInstruction) Execute(params Parameters) Addresser {
 	spValue += immediateValue
 	i.regs.WriteRegisterPair(h, l, uint16(spValue)+uint16(immediateValue))
 	i.regs.WriteRegister(f, uint8(flags))
+	return &address{}
+}
+
+func (i *loadHlRegisterInstruction) Execute(params Parameters) Addresser {
+	addr, err := i.regs.ReadRegisterPair(i.source1, i.source2)
+	immediateValue := uint8(params[0])
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.mmu.WriteByte(addr, immediateValue)
 	return &address{}
 }
 
