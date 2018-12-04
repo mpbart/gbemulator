@@ -106,14 +106,18 @@ func (c *cpu) IncrementPC(offset int) {
 }
 
 func (c *cpu) Tick() {
-
 	if c.mmu.HasPendingInterrupt() && c.interruptMasterEnable {
+		c.executeInstruction() // Always execute the pending instruction before running interrupt routine
+
 		interruptVector := c.mmu.GetNextPendingInterrupt()
 		c.mmu.ClearHighestInterrupt()
 		c.registers.PushSP(c.registers.ReadPC())
+		fmt.Printf("Pushing PC: %x\n", c.registers.ReadPC())
 		c.registers.WritePC(interruptVector)
 		c.InstructionTicks = 12
 		c.interruptMasterEnable = false
+
+		c.decodeNextInstruction() // Get and decode instruction at the interrupt 
 	}
 
 	if c.InstructionTicks != 0 {
