@@ -185,10 +185,11 @@ func (d *display) Tick() {
 		}
 	case VBLANK_MODE:
 		if d.currentTicks == 456 {
-			if d.lY == SCREEN_WIDTH+9 {
+			if d.lY == SCREEN_HEIGHT+9 {
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
 				d.lY = 0
+				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
 				d.updateDisplay()
 			} else {
 				d.lY += 1
