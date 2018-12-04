@@ -78,19 +78,19 @@ const (
 	SOUND_OUTPUT_SELECTION          uint16 = 0xFF25
 	SOUND_ON_OFF                    uint16 = 0xFF26
 	// WAVE_PATTERN_RAM                uint16 = 0xFF30 - 0xFF3F
-	LCD_CONTROL                     uint16 = 0xFF40
-	LCDC_STATUS                     uint16 = 0xFF41
-	SCROLL_Y                        uint16 = 0xFF42
-	SCROLL_X                        uint16 = 0xFF43
-	LCDC_Y_COORDINATE               uint16 = 0xFF44
-	LY_COMPARE                      uint16 = 0xFF45
-	DMA_TRANSFER_ADDRESS            uint16 = 0xFF46
-	BG_WINDOW_PALLETTE_DATA         uint16 = 0xFF47
-	OBJECT_PALLETTE_0               uint16 = 0xFF48
-	OBJECT_PALLETTE_1               uint16 = 0xFF49
-	WINDOW_Y_POSITION               uint16 = 0xFF4A
-	WINDOW_X_POSITION               uint16 = 0xFF4B
-	INTERRUPT_ENABLE                uint16 = 0xFFFF
+	LCD_CONTROL             uint16 = 0xFF40
+	LCDC_STATUS             uint16 = 0xFF41
+	SCROLL_Y                uint16 = 0xFF42
+	SCROLL_X                uint16 = 0xFF43
+	LCDC_Y_COORDINATE       uint16 = 0xFF44
+	LY_COMPARE              uint16 = 0xFF45
+	DMA_TRANSFER_ADDRESS    uint16 = 0xFF46
+	BG_WINDOW_PALLETTE_DATA uint16 = 0xFF47
+	OBJECT_PALLETTE_0       uint16 = 0xFF48
+	OBJECT_PALLETTE_1       uint16 = 0xFF49
+	WINDOW_Y_POSITION       uint16 = 0xFF4A
+	WINDOW_X_POSITION       uint16 = 0xFF4B
+	INTERRUPT_ENABLE        uint16 = 0xFFFF
 )
 
 type Interrupt int

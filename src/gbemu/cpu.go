@@ -1,13 +1,13 @@
 package main
 
 import (
-	//	"bufio"
+	"bufio"
 	"fmt"
-	//	"os"
+	"os"
 )
 
 // Currently Investigating:
-//	* tile addressing scheme changes at 0x0239 or somewhere before it. Does not look like 
+//	* tile addressing scheme changes at 0x0239 or somewhere before it. Does not look like
 //    we are changing with it because we are not clearing the screen correctly.
 
 const TICKS_PER_REFRESH int = 70224
@@ -117,7 +117,7 @@ func (c *cpu) Tick() {
 		c.InstructionTicks = 12
 		c.interruptMasterEnable = false
 
-		c.decodeNextInstruction() // Get and decode instruction at the interrupt 
+		c.decodeNextInstruction() // Get and decode instruction at the interrupt
 	}
 
 	if c.InstructionTicks != 0 {
