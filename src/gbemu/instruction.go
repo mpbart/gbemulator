@@ -1704,7 +1704,6 @@ func (i *eiInstruction) Execute(params Parameters) Addresser {
 
 func (i *jumpInstruction) Execute(params Parameters) Addresser {
 	newPC := (uint16(params[1]) << 8) + uint16(params[0])
-	fmt.Println(newPC)
 	return &address{true, newPC, false}
 }
 
@@ -1739,14 +1738,14 @@ func (i *conditionalJumpImmediateInstruction) Execute(params Parameters) Address
 }
 
 func (i *callInstruction) Execute(params Parameters) Addresser {
-	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	i.regs.PushSP(i.regs.ReadPC() + uint16(len(params)) + 1)
 	newPC := (uint16(params[1]) << 8) + uint16(params[0])
 	return &address{true, newPC, false}
 }
 
 func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
 	if i.conditional() == true {
-		i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+		i.regs.PushSP(i.regs.ReadPC() + uint16(len(params)) + 1)
 		newPC := (uint16(params[1]) << 8) + uint16(params[0])
 		return &address{true, newPC, false}
 	}
