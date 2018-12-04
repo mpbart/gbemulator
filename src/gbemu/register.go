@@ -152,5 +152,7 @@ func (r *registers) DumpContents() {
 	fmt.Printf("AF:%04x ", af)
 	fmt.Printf("BC:%04x ", bc)
 	fmt.Printf("DE:%04x ", de)
-	fmt.Printf("HL:%04x \n", hl)
+	fmt.Printf("HL:%04x ", hl)
+	fmt.Printf("LY:%02x ", r.mmu.ReadAt(LCDC_Y_COORDINATE))
+	fmt.Printf("LS:%02x \n", r.mmu.ReadAt(LCDC_STATUS))
 }

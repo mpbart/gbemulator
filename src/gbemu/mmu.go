@@ -168,6 +168,17 @@ func createBitToInterruptMap() map[int]uint16 {
 }
 
 func (m *mmu) Reset() {
+	// Initialize memory from values specified in manual
+	m.WriteByte(TIMER_REGISTER, 0x00)
+	m.WriteByte(TIMER_MODULO, 0x00)
+	m.WriteByte(TIMER_CONTROL, 0x00)
+	m.WriteByte(LCD_CONTROL, 0x91)
+	m.WriteByte(SCROLL_Y, 0x00)
+	m.WriteByte(SCROLL_X, 0x00)
+	m.WriteByte(LY_COMPARE, 0x00)
+	m.WriteByte(BG_WINDOW_PALLETTE_DATA, 0xFC)
+	m.WriteByte(OBJECT_PALLETTE_0, 0xFF)
+	m.WriteByte(OBJECT_PALLETTE_1, 0xFF)
 }
 
 func (m *mmu) ReadAt(address uint16) uint8 {

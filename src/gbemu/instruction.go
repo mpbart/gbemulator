@@ -537,7 +537,7 @@ type extendedInstruction struct {
 
 func CreateInstructions(regs Registers, mmu MMU, cpu CPU) map[byte]Instruction {
 	return map[byte]Instruction{
-		0x00: &noopInstruction{basicInstruction{1, 0}},
+		0x00: &noopInstruction{basicInstruction{4, 0}},
 
 		0x06: &loadImmediateInstruction{basicInstruction{8, 1}, b, regs},
 		0x3E: &loadImmediateInstruction{basicInstruction{8, 1}, a, regs},

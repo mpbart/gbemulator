@@ -170,13 +170,11 @@ func (d *display) Tick() {
 		if d.currentTicks == 376 {
 			if d.lY == SCREEN_HEIGHT-1 {
 				d.mmu.SetLCDStatusMode(VBLANK_MODE)
-				d.lY += 1
-				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
+				d.updateLY(d.lY+1)
 				d.currentTicks = 0
 				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 			} else {
-				d.lY += 1
-				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
+				d.updateLY(d.lY+1)
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
 			}
@@ -188,12 +186,10 @@ func (d *display) Tick() {
 			if d.lY == SCREEN_HEIGHT+9 {
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
-				d.lY = 0
-				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
+				d.updateLY(0)
 				d.updateDisplay()
 			} else {
-				d.lY += 1
-				d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
+				d.updateLY(d.lY+1)
 				d.currentTicks = 0
 			}
 		} else {
@@ -248,4 +244,14 @@ func (d *display) spriteHeight() int {
 
 func (d *display) CurrentLine() int {
 	return d.lY
+}
+
+func (d *display) updateLY(newValue int) {
+	d.lY = newValue
+	d.mmu.WriteByte(LCDC_Y_COORDINATE, uint8(d.lY))
+	if uint8(d.lY) == d.mmu.ReadAt(LY_COMPARE) {
+		d.mmu.WriteByte(LCDC_STATUS, d.mmu.ReadAt(LCDC_STATUS)|0x04)
+	} else {
+		d.mmu.WriteByte(LCDC_STATUS, d.mmu.ReadAt(LCDC_STATUS)&0xFB)
+	}
 }
