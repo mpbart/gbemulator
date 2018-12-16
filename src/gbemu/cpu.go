@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // Currently Investigating:
@@ -31,6 +33,8 @@ type cpu struct {
 	currentParams         Parameters
 	getInput              bool
 	interruptMasterEnable bool
+	ticks                 int
+	breakAddress          uint16
 }
 
 func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
@@ -49,6 +53,8 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		currentParams:         Parameters{},
 		getInput:              false,
 		interruptMasterEnable: false,
+		ticks:                 0,
+		breakAddress:          uint16(0x69DA),
 	}
 
 	cpu.instructions = CreateInstructions(registers, mmu, cpu)
@@ -163,13 +169,52 @@ func (c *cpu) executeInstruction() {
 	result := c.currentInstruction.Execute(c.currentParams)
 
 	//fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
-	//c.registers.DumpContents()
-	//if c.registers.ReadPC() == 0x021B || c.getInput {
-	//c.getInput = true
-	//fmt.Print("Hit enter to continue")
-	//reader := bufio.NewReader(os.Stdin)
-	//reader.ReadString('\n')
-	//}
+	if c.registers.ReadPC() == c.breakAddress || c.getInput {
+		c.registers.DumpContents(c.ticks)
+	debug:
+		for {
+			fmt.Print("<Enter Debug Command> ")
+			reader := bufio.NewReader(os.Stdin)
+			str, _ := reader.ReadString('\n')
+			command := strings.Trim(str, "\n")
+			switch command {
+			case "M", "m": //Check memory location
+				fmt.Print("Enter memory location to print:")
+				rawAddress, _ := reader.ReadString('\n')
+				address := strings.Trim(rawAddress, "\n")
+				addr, err := strconv.ParseUint(address, 16, 16)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				fmt.Printf("%x\n", c.mmu.ReadAt(uint16(addr)))
+			case "C", "c": // continue
+				c.getInput = true
+				break debug
+			case "E", "e": // exit debugger and continue
+				c.getInput = false
+				break debug
+			case "R", "r": // run to address and then break
+				c.getInput = false
+				fmt.Print("Enter PC to run to:")
+				rawPC, _ := reader.ReadString('\n')
+				strippedPC := strings.Trim(rawPC, "\n")
+				pc, err := strconv.ParseUint(strippedPC, 16, 16)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				c.breakAddress = uint16(pc)
+				break debug
+			case "H", "h": // print help
+				fmt.Println("M,m - view value at memory location 0x<input>")
+				fmt.Println("C,c - continue and break after next cpu cycle")
+				fmt.Println("E,e - exit debugger and continue running")
+			default:
+				continue
+			}
+		}
+	}
 
 	if result.ShouldJump() {
 		c.registers.WritePC(result.NewAddress())
@@ -180,6 +225,7 @@ func (c *cpu) executeInstruction() {
 	if result.IsStopped() {
 		c.stopped = true
 	}
+	c.ticks += 1
 }
 
 func (c *cpu) SetInterruptMasterEnable(value bool) {

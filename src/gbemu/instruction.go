@@ -1725,7 +1725,7 @@ func (i *jumpHlInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *jumpImmediateInstruction) Execute(params Parameters) Addresser {
-	newPC := i.regs.ReadPC() + uint16(params[0])
+	newPC := i.regs.ReadPC() + 1 + uint16(len(params)) + uint16(computeTwosComplement(params[0]))
 	return &address{true, newPC, false}
 }
 
@@ -1753,7 +1753,7 @@ func (i *callConditionalInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *restartInstruction) Execute(params Parameters) Addresser {
-	i.regs.PushSP(i.regs.ReadPC()) // TODO: This may need to increment PC before saving
+	i.regs.PushSP(i.regs.ReadPC() + uint16(len(params)) + 1)
 	return &address{true, 0x00 + i.offset, false}
 }
 

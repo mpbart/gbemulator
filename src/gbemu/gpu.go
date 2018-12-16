@@ -170,11 +170,11 @@ func (d *display) Tick() {
 		if d.currentTicks == 376 {
 			if d.lY == SCREEN_HEIGHT-1 {
 				d.mmu.SetLCDStatusMode(VBLANK_MODE)
-				d.updateLY(d.lY+1)
+				d.updateLY(d.lY + 1)
 				d.currentTicks = 0
 				d.mmu.FireInterrupt(VBLANK_INTERRUPT)
 			} else {
-				d.updateLY(d.lY+1)
+				d.updateLY(d.lY + 1)
 				d.mmu.SetLCDStatusMode(OAM_SEARCH_MODE)
 				d.currentTicks = 0
 			}
@@ -189,7 +189,7 @@ func (d *display) Tick() {
 				d.updateLY(0)
 				d.updateDisplay()
 			} else {
-				d.updateLY(d.lY+1)
+				d.updateLY(d.lY + 1)
 				d.currentTicks = 0
 			}
 		} else {

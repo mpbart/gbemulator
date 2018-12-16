@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"runtime/debug"
+)
 
 // I/O Registers:
 // 0xFF00 - P1   - Joypad input
@@ -214,7 +217,8 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address == 0xFFFF:
 		return m.InterruptEnable
 	default:
-		fmt.Println("Error ocurred trying to read memory address %v", address)
+		fmt.Printf("Error ocurred trying to read memory address %x\n", address)
+		debug.PrintStack()
 	}
 	return 0
 }
@@ -246,6 +250,8 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 			}
 		*/
 		m.OAM[address-0xFE00] = value
+	case address >= 0xFEA0 && address <= 0xFEFF:
+		return
 	case address >= 0xFF00 && address <= 0xFF7F:
 		if address == 0xFF04 { // Writing to the divider register always resets it to 0
 			value = 0
@@ -258,7 +264,8 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address == 0xFFFF:
 		m.InterruptEnable = value
 	default:
-		fmt.Println("Error ocurred trying to read memory address %v", address)
+		fmt.Printf("Error ocurred trying to write memory address %x\n", address)
+		debug.PrintStack()
 	}
 }
 
