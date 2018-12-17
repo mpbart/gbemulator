@@ -34,7 +34,7 @@ type cpu struct {
 	getInput              bool
 	interruptMasterEnable bool
 	ticks                 int
-	breakAddress          uint16
+	breakAddresses        []uint16
 }
 
 func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
@@ -54,7 +54,7 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		getInput:              false,
 		interruptMasterEnable: false,
 		ticks:                 0,
-		breakAddress:          uint16(0x69DA),
+		breakAddresses:        []uint16{0x69DA},
 	}
 
 	cpu.instructions = CreateInstructions(registers, mmu, cpu)
@@ -169,7 +169,7 @@ func (c *cpu) executeInstruction() {
 	result := c.currentInstruction.Execute(c.currentParams)
 
 	//fmt.Printf("executed %x at %x\n", c.currentOpcode, c.registers.ReadPC())
-	if c.registers.ReadPC() == c.breakAddress || c.getInput {
+	if c.atBreakpoint() || c.getInput {
 		c.registers.DumpContents(c.ticks)
 	debug:
 		for {
@@ -194,9 +194,21 @@ func (c *cpu) executeInstruction() {
 			case "E", "e": // exit debugger and continue
 				c.getInput = false
 				break debug
-			case "R", "r": // run to address and then break
+			/*
+				case "R", "r": // run to address and then break
+					fmt.Print("Enter breakpoint to remove")
+					rawPC, _ := reader.ReadString('\n')
+					strippedPC := strings.Trim(rawPC, "\n")
+					pc, err := strconv.ParseUint(strippedPC, 16, 16)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					c.breakAddress = uint16(pc)
+			*/
+			case "B", "b": // Add breakpoint
 				c.getInput = false
-				fmt.Print("Enter PC to run to:")
+				fmt.Print("Enter PC to break at:")
 				rawPC, _ := reader.ReadString('\n')
 				strippedPC := strings.Trim(rawPC, "\n")
 				pc, err := strconv.ParseUint(strippedPC, 16, 16)
@@ -204,12 +216,12 @@ func (c *cpu) executeInstruction() {
 					fmt.Println(err)
 					continue
 				}
-				c.breakAddress = uint16(pc)
-				break debug
+				c.breakAddresses = append(c.breakAddresses, uint16(pc))
 			case "H", "h": // print help
 				fmt.Println("M,m - view value at memory location 0x<input>")
 				fmt.Println("C,c - continue and break after next cpu cycle")
 				fmt.Println("E,e - exit debugger and continue running")
+				fmt.Println("B,b - add new breakpoint")
 			default:
 				continue
 			}
@@ -230,4 +242,14 @@ func (c *cpu) executeInstruction() {
 
 func (c *cpu) SetInterruptMasterEnable(value bool) {
 	c.interruptMasterEnable = value
+}
+
+func (c *cpu) atBreakpoint() bool {
+	currentPc := c.registers.ReadPC()
+	for _, addr := range c.breakAddresses {
+		if addr == currentPc {
+			return true
+		}
+	}
+	return false
 }
