@@ -147,6 +147,7 @@ func (d *display) Simulate(cpu CPU, mmu MMU, timer Timer) {
 
 func (d *display) Tick() {
 	if !d.mmu.LCDEnabled() {
+		d.lY = 0
 		return
 	}
 

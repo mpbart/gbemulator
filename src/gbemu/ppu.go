@@ -14,6 +14,7 @@ type ppu struct {
 	currentPixel              uint16
 	currentSpritePixelFetched bool
 	fetchingSprite            bool
+	mmu                       MMU
 }
 
 func createPPU(mmu MMU) PPU {
@@ -29,6 +30,7 @@ func createPPU(mmu MMU) PPU {
 		currentSpritePixelFetched: false,
 		lcdBuffer:                 buffer,
 		fetchingSprite:            false,
+		mmu:                       mmu,
 	}
 }
 
@@ -67,7 +69,11 @@ func (p *ppu) LineFinished() bool {
 // sprite and think it needs to re-fetch...
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 	if !p.isUnfetchedSpritePixel(sprites) {
-		p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+		if !p.mmu.BGDisplayEnabled() {
+			p.lcdBuffer[currentLine][p.currentPixel] = WHITE() // When background is not enabled we should only draw blank pixels
+		} else {
+			p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+		}
 		p.fifo = p.fifo[1:]
 		p.currentPixel += 1
 		p.currentSpritePixelFetched = false
@@ -76,7 +82,7 @@ func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 
 func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
-		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.currentPixel) && !p.currentSpritePixelFetched {
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.currentPixel) && !p.currentSpritePixelFetched || !p.mmu.SpritesEnabled() {
 			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH, sprite)
 			p.fetchingSprite = true
 			return true

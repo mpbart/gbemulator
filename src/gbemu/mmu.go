@@ -119,7 +119,7 @@ type MMU interface {
 	BGAndWindowAddressMode() AddressMode
 	BGTileMap() uint16
 	SpritesEnabled() bool
-	BGDisplayPriority() bool
+	BGDisplayEnabled() bool
 	ConvertNumToBgPixel(int) RGBPixel
 	ConvertNumToSpritePixel(int, int) RGBPixel
 	HasPendingInterrupt() bool
@@ -257,6 +257,8 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 			value = 0
 		} else if address == 0xFF46 {
 			m.startDMA(value)
+		} else if address == 0xFF41 {
+			value = (value & 0x78) | (m.IoPorts[0x41] & 0x87) // Bits 8, 2, 1, 0 are read-only
 		}
 		m.IoPorts[address-0xFF00] = value
 	case address >= 0xFF80 && address <= 0xFFFE:
@@ -328,7 +330,7 @@ func (m *mmu) SpritesEnabled() bool {
 	return GetBit(m.ReadAt(0xFF40), 1) == 1
 }
 
-func (m *mmu) BGDisplayPriority() bool {
+func (m *mmu) BGDisplayEnabled() bool {
 	return GetBit(m.ReadAt(0xFF40), 0) == 1
 }
 
