@@ -355,6 +355,7 @@ type returnConditionalInstruction struct {
 type retiInstruction struct {
 	basicInstruction
 	regs Registers
+	cpu  CPU
 }
 
 type writeMemoryInstruction struct {
@@ -783,7 +784,7 @@ func CreateInstructions(regs Registers, mmu MMU, cpu CPU) map[byte]Instruction {
 		0xC8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return (regs.ReadRegister(f) >> 7) == 1 }},
 		0xD0: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 0 }},
 		0xD8: &returnConditionalInstruction{basicInstruction{8, 0}, regs, func() bool { return ((regs.ReadRegister(f) & 0x08) >> 3) == 1 }},
-		0xD9: &retiInstruction{basicInstruction{8, 0}, regs},
+		0xD9: &retiInstruction{basicInstruction{8, 0}, regs, cpu},
 		0xEA: &writeMemoryImmediateInstruction{basicInstruction{16, 2}, regs, mmu},
 		0xCB: &extendedInstruction{CreateExtendedInstructions(regs, mmu)},
 	}
@@ -1771,7 +1772,7 @@ func (i *returnConditionalInstruction) Execute(params Parameters) Addresser {
 }
 
 func (i *retiInstruction) Execute(params Parameters) Addresser {
-	// Need to deal with enabling/disabling interrupts
+	i.cpu.SetInterruptMasterEnable(true)
 	newPC := i.regs.PopSP()
 	return &address{true, newPC, false}
 }
