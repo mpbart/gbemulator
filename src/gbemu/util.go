@@ -20,13 +20,17 @@ func BitsToNum(mostSignificantBit, leastSignificantBit int) int {
 	}
 }
 
-func GetHighestBit(num uint8) int {
+func GetHighestBit(num uint8, bits int) int {
 	highestBit := 0
-	for i := 0; i < 15; i++ {
+	for i := 0; i < bits; i++ {
 		if num&0x01 == 1 {
 			highestBit = i
 		}
 		num = num >> 1
 	}
 	return highestBit
+}
+
+func GetHighestInterruptBit(num uint8) int {
+	return GetHighestBit(num, 5)
 }
