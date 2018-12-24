@@ -106,6 +106,11 @@ func CreateDisplay(mmu MMU, cpu CPU, timer Timer) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
+	// TODO: Hook this up to the joypad register
+	callback := func(_ *glfw.Window, key glfw.Key, scancode int, action glfw.Action, modifier glfw.ModifierKey) {
+		fmt.Println("key pressed: ", key)
+	}
+	window.SetKeyCallback(callback)
 	window.SetPos(0, 0)
 
 	d := &display{
