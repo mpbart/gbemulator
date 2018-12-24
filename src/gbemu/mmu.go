@@ -219,7 +219,7 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 		return m.IoPorts[address-0xFF00]
 	case address >= 0xFF80 && address <= 0xFFFE:
 		return m.HRAM[address-0xFF80]
-	case address == 0xFFFF:
+	case address == INTERRUPT_ENABLE:
 		return m.InterruptEnable
 	default:
 		fmt.Printf("Error ocurred trying to read memory address %x\n", address)
@@ -258,17 +258,22 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 	case address >= 0xFEA0 && address <= 0xFEFF:
 		return
 	case address >= 0xFF00 && address <= 0xFF7F:
-		if address == 0xFF04 { // Writing to the divider register always resets it to 0
+		switch address {
+		case DIVIDER_REGISTER: // Writing to the divider register always resets it to 0
 			value = 0
-		} else if address == 0xFF46 {
+		case DMA_TRANSFER_ADDRESS:
 			m.startDMA(value)
-		} else if address == 0xFF41 {
+		case LCDC_STATUS:
 			value = (value & 0x78) | (m.IoPorts[0x41] & 0x87) // Bits 8, 2, 1, 0 are read-only
+		case JOYPAD_INPUT:
+			value &= 0x30 // Only bits 4 and 5 can be set
+		default:
 		}
 		m.IoPorts[address-0xFF00] = value
 	case address >= 0xFF80 && address <= 0xFFFE:
+		fmt.Printf("Writing %x to %x\n", value, address)
 		m.HRAM[address-0xFF80] = value
-	case address == 0xFFFF:
+	case address == INTERRUPT_ENABLE:
 		m.InterruptEnable = value
 	default:
 		fmt.Printf("Error ocurred trying to write memory address %x\n", address)
@@ -417,23 +422,23 @@ func (m *mmu) ConvertNumToSpritePixel(i, paletteNum int) RGBPixel {
 }
 
 func (m *mmu) HasPendingInterrupt() bool {
-	return m.ReadAt(0xFFFF)&m.ReadAt(0xFF0F) != 0
+	return m.ReadAt(INTERRUPT_ENABLE)&m.ReadAt(INTERRUPT_FLAGS) != 0
 }
 
 func (m *mmu) GetNextPendingInterrupt() uint16 {
-	return m.interruptMapping[GetHighestBit(m.ReadAt(0xFFFF)&m.ReadAt(0xFF0F))]
+	return m.interruptMapping[GetHighestInterruptBit(m.ReadAt(INTERRUPT_ENABLE)&m.ReadAt(INTERRUPT_FLAGS))]
 }
 
 func (m *mmu) ClearHighestInterrupt() {
-	interruptFlags := m.ReadAt(0xFF0F)
-	bit := GetHighestBit(m.ReadAt(0xFFFF) & interruptFlags)
+	interruptFlags := m.ReadAt(INTERRUPT_FLAGS)
+	bit := GetHighestInterruptBit(m.ReadAt(INTERRUPT_ENABLE) & interruptFlags)
 	temp := (1 << uint(bit))
-	m.WriteByte(0xFF0F, uint8(temp^31))
+	m.WriteByte(INTERRUPT_FLAGS, interruptFlags&uint8(temp^31))
 }
 
 func (m *mmu) FireInterrupt(interrupt Interrupt) {
-	val := m.ReadAt(0xFF0F) | (1 << uint(interrupt))
-	m.WriteByte(0xFF0F, val)
+	val := m.ReadAt(INTERRUPT_FLAGS) | (1 << uint(interrupt))
+	m.WriteByte(INTERRUPT_FLAGS, val)
 }
 
 func (m *mmu) startDMA(value uint8) {
