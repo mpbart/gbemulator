@@ -117,7 +117,7 @@ func (c *cpu) Tick() {
 
 		interruptVector := c.mmu.GetNextPendingInterrupt()
 		c.mmu.ClearHighestInterrupt()
-		c.registers.PushSP(c.registers.ReadPC() + 1 + uint16(c.currentInstruction.GetNumParameterBytes()))
+		c.registers.PushSP(c.registers.ReadPC() + uint16(c.currentInstruction.GetNumParameterBytes()))
 		fmt.Printf("Pushing PC: %x\n", c.registers.ReadPC())
 		c.registers.WritePC(interruptVector)
 		c.InstructionTicks = 12
