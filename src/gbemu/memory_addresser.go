@@ -8,7 +8,7 @@ const (
 )
 
 type MemoryAddresser interface {
-	GetAddress(uint8) uint16
+	GetAddress(uint8, FetchMode) uint16
 }
 
 type memoryAddresser struct {
@@ -21,8 +21,8 @@ func CreateMemoryAddresser(mmu MMU) MemoryAddresser {
 	}
 }
 
-func (a *memoryAddresser) GetAddress(offset uint8) uint16 {
-	if a.getAddressMode() == ADDRESS_MODE_8000 {
+func (a *memoryAddresser) GetAddress(offset uint8, fetchMode FetchMode) uint16 {
+	if a.getAddressMode() == ADDRESS_MODE_8000 || fetchMode == SPRITE_FETCH {
 		return uint16(0x8000 + uint16(offset)<<4)
 	} else {
 		if offset < 128 {

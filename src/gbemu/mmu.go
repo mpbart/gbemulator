@@ -291,7 +291,7 @@ func (m *mmu) LCDStatusMode() uint8 {
 // LCDC Status register directly
 func (m *mmu) SetLCDStatusMode(mode uint8) {
 	value := m.ReadAt(LCDC_STATUS)&0xFC + mode
-	m.IoPorts[LCDC_STATUS - 0xFF00] = value
+	m.IoPorts[LCDC_STATUS-0xFF00] = value
 }
 
 func (m *mmu) CanAccessOAM() bool {

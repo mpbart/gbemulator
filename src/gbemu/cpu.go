@@ -53,7 +53,7 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		currentParams:         Parameters{},
 		getInput:              false,
 		interruptMasterEnable: false,
-		ticks:                 0,
+		ticks:				   0,
 		breakAddresses:        []uint16{},
 	}
 

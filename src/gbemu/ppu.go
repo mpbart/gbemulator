@@ -11,10 +11,12 @@ type ppu struct {
 	fifo                      []RGBPixel
 	fetcher                   Fetcher
 	lcdBuffer                 [][]RGBPixel
-	currentPixel              uint16
+	currentFetchPixel         uint16
+	lcdCurrentPixel           uint16
 	currentSpritePixelFetched bool
 	fetchingSprite            bool
 	mmu                       MMU
+	lastFetchedSprite         SpriteAttribute
 }
 
 func createPPU(mmu MMU) PPU {
@@ -26,7 +28,8 @@ func createPPU(mmu MMU) PPU {
 	return &ppu{
 		fifo:                      make([]RGBPixel, 0),
 		fetcher:                   createFetcher(mmu),
-		currentPixel:              0,
+		currentFetchPixel:         0,
+		lcdCurrentPixel:           0,
 		currentSpritePixelFetched: false,
 		lcdBuffer:                 buffer,
 		fetchingSprite:            false,
@@ -41,10 +44,10 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 			p.currentSpritePixelFetched = true
 			p.overlayPixels(pixels)
 			p.fetchingSprite = false
-			p.fetcher.Reset(p.currentPixel, BG_FETCH, nil)
+			p.fetcher.Reset(p.currentFetchPixel, BG_FETCH, nil)
 		} else {
 			p.shiftInPixels(pixels, currentLine)
-			p.fetcher.Reset(p.currentPixel, BG_FETCH, nil)
+			p.fetcher.Reset(p.currentFetchPixel, BG_FETCH, nil)
 		}
 	}
 
@@ -54,15 +57,16 @@ func (p *ppu) Tick(sprites []SpriteAttribute, currentLine int) {
 }
 
 func (p *ppu) Reset() {
-	p.currentPixel = 0
+	p.currentFetchPixel = 0
+	p.lcdCurrentPixel = 0
 }
 
 func (p *ppu) canShiftOut() bool {
-	return len(p.fifo) > 8 && p.currentPixel < uint16(SCREEN_WIDTH) && !p.fetchingSprite
+	return len(p.fifo) > 8 && p.lcdCurrentPixel < uint16(SCREEN_WIDTH) && !p.fetchingSprite
 }
 
 func (p *ppu) LineFinished() bool {
-	return p.currentPixel == uint16(SCREEN_WIDTH)
+	return p.lcdCurrentPixel == uint16(SCREEN_WIDTH)
 }
 
 // Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
@@ -70,21 +74,23 @@ func (p *ppu) LineFinished() bool {
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 	if !p.isUnfetchedSpritePixel(sprites) {
 		if !p.mmu.BGDisplayEnabled() {
-			p.lcdBuffer[currentLine][p.currentPixel] = WHITE() // When background is not enabled we should only draw blank pixels
+			p.lcdBuffer[currentLine][p.lcdCurrentPixel] = WHITE() // When background is not enabled we should only draw blank pixels
 		} else {
-			p.lcdBuffer[currentLine][p.currentPixel] = p.fifo[0]
+			p.lcdBuffer[currentLine][p.lcdCurrentPixel] = p.fifo[0]
 		}
 		p.fifo = p.fifo[1:]
-		p.currentPixel += 1
+		p.lcdCurrentPixel += 1
 		p.currentSpritePixelFetched = false
 	}
 }
 
 func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
-		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.currentPixel) && !p.currentSpritePixelFetched || !p.mmu.SpritesEnabled() {
-			p.fetcher.Reset(uint16(p.currentPixel), SPRITE_FETCH, sprite)
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.lcdCurrentPixel) && !p.currentSpritePixelFetched || !p.mmu.SpritesEnabled() {
+			p.fetcher.Reset(uint16(p.lcdCurrentPixel), SPRITE_FETCH, sprite)
+			p.currentFetchPixel = p.lcdCurrentPixel
 			p.fetchingSprite = true
+			p.lastFetchedSprite = sprite
 			return true
 			// 1. Stop current fetching
 			// 2. Start fetching sprite pixels
@@ -99,6 +105,7 @@ func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {
 	for _, pixel := range pixels {
 		p.fifo = append(p.fifo, pixel)
 	}
+	p.currentFetchPixel += uint16(len(pixels))
 }
 
 func (p *ppu) LcdBuffer(y, x int) RGBPixel {
@@ -106,4 +113,21 @@ func (p *ppu) LcdBuffer(y, x int) RGBPixel {
 }
 
 func (p *ppu) overlayPixels(pixels []RGBPixel) {
+	for idx, pixel := range pixels {
+		if p.lastFetchedSprite.HasPriority() {
+			p.fifo[idx] = p.combineColors(pixel, p.fifo[idx], true)
+		} else {
+			p.fifo[idx] = p.combineColors(pixel, p.fifo[idx], false)
+		}
+	}
+	p.currentFetchPixel += uint16(len(pixels))
+}
+
+func (p *ppu) combineColors(spritePixel, bgPixel RGBPixel, spriteHasPriority bool) RGBPixel {
+	// TODO: This might want to check against the value of color 0 rather then WHITE
+	if spriteHasPriority || bgPixel == WHITE() {
+		return spritePixel
+	} else {
+		return bgPixel
+	}
 }
