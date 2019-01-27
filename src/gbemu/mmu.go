@@ -126,7 +126,7 @@ type MMU interface {
 	GetNextPendingInterrupt() uint16
 	ClearHighestInterrupt()
 	FireInterrupt(Interrupt)
-	ReadJoypadInput() uint8
+	ReadJoypadInput(uint8) uint8
 	Tick()
 }
 
@@ -214,7 +214,7 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 	case address >= 0xFF00 && address <= 0xFF7F:
 		switch address {
 		case JOYPAD_INPUT:
-			return m.ReadJoypadInput()
+			return m.ReadJoypadInput(m.IoPorts[address-0xFF00])
 		}
 		return m.IoPorts[address-0xFF00]
 	case address >= 0xFF80 && address <= 0xFFFE:
@@ -271,7 +271,7 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 		}
 		m.IoPorts[address-0xFF00] = value
 	case address >= 0xFF80 && address <= 0xFFFE:
-		fmt.Printf("Writing %x to %x\n", value, address)
+		//fmt.Printf("Writing %x to %x\n", value, address)
 		m.HRAM[address-0xFF80] = value
 	case address == INTERRUPT_ENABLE:
 		m.InterruptEnable = value
@@ -448,8 +448,8 @@ func (m *mmu) startDMA(value uint8) {
 	}
 }
 
-func (m *mmu) ReadJoypadInput() uint8 {
-	if GetBit(m.ReadAt(JOYPAD_INPUT), 4) == 0 { // Get direction key inputs
+func (m *mmu) ReadJoypadInput(value uint8) uint8 {
+	if GetBit(value, 4) == 0 { // Get direction key inputs
 		// bit 3 - down
 		// bit 2 - up
 		// bit 1 - left
