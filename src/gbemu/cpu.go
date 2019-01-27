@@ -54,7 +54,7 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		getInput:              false,
 		interruptMasterEnable: false,
 		ticks:                 0,
-		breakAddresses:        []uint16{0x02BC},
+		breakAddresses:        []uint16{},
 	}
 
 	cpu.instructions = CreateInstructions(registers, mmu, cpu)
