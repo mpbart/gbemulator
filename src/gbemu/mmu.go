@@ -215,6 +215,8 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 		switch address {
 		case JOYPAD_INPUT:
 			return m.ReadJoypadInput(m.IoPorts[address-0xFF00])
+		case LCDC_STATUS:
+			return (m.IoPorts[address-0xFF00] | 0x80) // The 7th bit should always be set to 1
 		}
 		return m.IoPorts[address-0xFF00]
 	case address >= 0xFF80 && address <= 0xFFFE:
@@ -264,7 +266,7 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 		case DMA_TRANSFER_ADDRESS:
 			m.startDMA(value)
 		case LCDC_STATUS:
-			value = (value & 0x78) | (m.IoPorts[0x41] & 0x87) // Bits 8, 2, 1, 0 are read-only
+			value = (value & 0x78) | (m.ReadAt(LCDC_STATUS) & 0x87) // Bits 7, 2, 1, 0 are read-only
 		case JOYPAD_INPUT:
 			value &= 0x30 // Only bits 4 and 5 can be set
 		default:
@@ -282,12 +284,14 @@ func (m *mmu) WriteByte(address uint16, value uint8) {
 }
 
 func (m *mmu) LCDStatusMode() uint8 {
-	return m.ReadAt(0xFF41) & 0x03
+	return m.ReadAt(LCDC_STATUS) & 0x03
 }
 
+// This is the only method allowed to set the bottom 2 bits of the
+// LCDC Status register directly
 func (m *mmu) SetLCDStatusMode(mode uint8) {
-	value := m.ReadAt(0xFF41)&0xFC + mode
-	m.WriteByte(0xFF41, value)
+	value := m.ReadAt(LCDC_STATUS)&0xFC + mode
+	m.IoPorts[LCDC_STATUS - 0xFF00] = value
 }
 
 func (m *mmu) CanAccessOAM() bool {

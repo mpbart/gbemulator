@@ -91,7 +91,7 @@ func (cpu *cpu) Reset() {
 	cpu.mmu.WriteByte(0xFF25, 0xF3)
 	cpu.mmu.WriteByte(0xFF26, 0xF1)
 	cpu.mmu.WriteByte(0xFF40, 0x91)
-	cpu.mmu.WriteByte(0xFF41, 0x02) // Set status to OAM
+	cpu.mmu.SetLCDStatusMode(0x02) // Set status to OAM
 	cpu.mmu.WriteByte(0xFF42, 0x00)
 	cpu.mmu.WriteByte(0xFF43, 0x00)
 	cpu.mmu.WriteByte(0xFF45, 0x00)
