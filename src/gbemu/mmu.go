@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime/debug"
+	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
 // I/O Registers:
@@ -128,6 +129,7 @@ type MMU interface {
 	FireInterrupt(Interrupt)
 	ReadJoypadInput(uint8) uint8
 	Tick()
+	AddKeyPressEvent(glfw.Key)
 }
 
 type mmu struct {
@@ -143,13 +145,25 @@ type mmu struct {
 	InterruptEnable  uint8        // 0xFFFF
 	colorMapping     map[int]RGBPixel
 	interruptMapping map[int]uint16
+	keyEvents        chan glfw.Key
 }
 
 func CreateMMU() MMU {
 	return &mmu{
 		colorMapping:     createColorMapping(),
 		interruptMapping: createBitToInterruptMap(),
+		keyEvents:        make(chan glfw.Key, 100),
 	}
+}
+
+func (m* mmu) AddKeyPressEvent(key glfw.Key) {
+	m.keyEvents <-key
+	/*
+	select {
+		case m.keyEvents <-key:
+		default:
+	}
+	*/
 }
 
 func createColorMapping() map[int]RGBPixel {
@@ -454,6 +468,21 @@ func (m *mmu) startDMA(value uint8) {
 
 func (m *mmu) ReadJoypadInput(value uint8) uint8 {
 	if GetBit(value, 4) == 0 { // Get direction key inputs
+		switch {
+		case key := <-m.keyEvents:
+			if key == glfw.KeyDown {
+				return 0xEF
+			} else if key == glfw.KeyUp {
+				return 0xEF
+			} else if key == glfw.KeyLeft {
+				return 0xEF
+			} else if key == glfw.KeyRight {
+				return 0xEF
+			}
+			return 0
+		default:
+			break
+		}
 		// bit 3 - down
 		// bit 2 - up
 		// bit 1 - left

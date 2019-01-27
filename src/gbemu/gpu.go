@@ -109,6 +109,7 @@ func CreateDisplay(mmu MMU, cpu CPU, timer Timer) {
 	// TODO: Hook this up to the joypad register
 	callback := func(_ *glfw.Window, key glfw.Key, scancode int, action glfw.Action, modifier glfw.ModifierKey) {
 		fmt.Println("key pressed: ", key)
+		mmu.AddKeyPressEvent(key)
 	}
 	window.SetKeyCallback(callback)
 	window.SetPos(0, 0)
