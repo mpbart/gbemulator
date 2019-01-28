@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"runtime/debug"
 	"github.com/go-gl/glfw/v3.2/glfw"
+	"runtime/debug"
 )
 
 // I/O Registers:
@@ -156,13 +156,13 @@ func CreateMMU() MMU {
 	}
 }
 
-func (m* mmu) AddKeyPressEvent(key glfw.Key) {
-	m.keyEvents <-key
+func (m *mmu) AddKeyPressEvent(key glfw.Key) {
+	m.keyEvents <- key
 	/*
-	select {
-		case m.keyEvents <-key:
-		default:
-	}
+		select {
+			case m.keyEvents <-key:
+			default:
+		}
 	*/
 }
 
@@ -468,7 +468,7 @@ func (m *mmu) startDMA(value uint8) {
 
 func (m *mmu) ReadJoypadInput(value uint8) uint8 {
 	if GetBit(value, 4) == 0 { // Get direction key inputs
-		switch {
+		select {
 		case key := <-m.keyEvents:
 			if key == glfw.KeyDown {
 				return 0xEF
