@@ -27,6 +27,11 @@ type display struct {
 	visibleSprites []SpriteAttribute
 }
 
+type KeyPress struct {
+	Key    glfw.Key
+	Action glfw.Action
+}
+
 type RGBPixel struct {
 	Red   uint8
 	Green uint8
@@ -108,8 +113,8 @@ func CreateDisplay(mmu MMU, cpu CPU, timer Timer) {
 	gl.LoadIdentity()
 	// TODO: Hook this up to the joypad register
 	callback := func(_ *glfw.Window, key glfw.Key, scancode int, action glfw.Action, modifier glfw.ModifierKey) {
-		fmt.Println("key pressed: ", key)
-		mmu.AddKeyPressEvent(key)
+		fmt.Println("key pressed: ", key, action)
+		mmu.AddKeyPressEvent(KeyPress{key, action})
 	}
 	window.SetKeyCallback(callback)
 	window.SetPos(0, 0)

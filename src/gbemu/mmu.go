@@ -129,41 +129,49 @@ type MMU interface {
 	FireInterrupt(Interrupt)
 	ReadJoypadInput(uint8) uint8
 	Tick()
-	AddKeyPressEvent(glfw.Key)
+	AddKeyPressEvent(KeyPress)
 }
 
 type mmu struct {
-	ROM              [32768]uint8 // 0x0000 - 0x7FFF
-	VRAM             [8192]uint8  // 0x8000 - 0x9FFF
-	SwitchableRAM    [8192]uint8  // 0xA000 - 0xBFFF
-	InternalRAM      [8192]uint8  // 0xC000 - 0xDFFF
-	EchoRAM          [8192]uint8  // 0xE000 - 0xFDFF
-	OAM              [160]uint8   // 0xFE00 - 0xFE9F
-	Unused           [95]uint8    // 0xFEA0 - 0xFEFF
-	IoPorts          [128]uint8   // 0xFF00 - 0xFF7F
-	HRAM             [127]uint8   // 0xFF80 - 0xFFFE
-	InterruptEnable  uint8        // 0xFFFF
-	colorMapping     map[int]RGBPixel
-	interruptMapping map[int]uint16
-	keyEvents        chan glfw.Key
+	ROM                [32768]uint8 // 0x0000 - 0x7FFF
+	VRAM               [8192]uint8  // 0x8000 - 0x9FFF
+	SwitchableRAM      [8192]uint8  // 0xA000 - 0xBFFF
+	InternalRAM        [8192]uint8  // 0xC000 - 0xDFFF
+	EchoRAM            [8192]uint8  // 0xE000 - 0xFDFF
+	OAM                [160]uint8   // 0xFE00 - 0xFE9F
+	Unused             [95]uint8    // 0xFEA0 - 0xFEFF
+	IoPorts            [128]uint8   // 0xFF00 - 0xFF7F
+	HRAM               [127]uint8   // 0xFF80 - 0xFFFE
+	InterruptEnable    uint8        // 0xFFFF
+	colorMapping       map[int]RGBPixel
+	interruptMapping   map[int]uint16
+	directionKeyEvents chan KeyPress
+	buttonKeyEvents    chan KeyPress
 }
 
 func CreateMMU() MMU {
 	return &mmu{
-		colorMapping:     createColorMapping(),
-		interruptMapping: createBitToInterruptMap(),
-		keyEvents:        make(chan glfw.Key, 100),
+		colorMapping:       createColorMapping(),
+		interruptMapping:   createBitToInterruptMap(),
+		directionKeyEvents: make(chan KeyPress, 500),
+		buttonKeyEvents:    make(chan KeyPress, 500),
 	}
 }
 
-func (m *mmu) AddKeyPressEvent(key glfw.Key) {
-	m.keyEvents <- key
-	/*
+func (m *mmu) AddKeyPressEvent(keyPress KeyPress) {
+	if keyPress.Key == glfw.KeyUp || keyPress.Key == glfw.KeyDown || keyPress.Key == glfw.KeyLeft || keyPress.Key == glfw.KeyRight {
 		select {
-			case m.keyEvents <-key:
-			default:
+		case m.directionKeyEvents <- keyPress:
+		default:
 		}
-	*/
+		m.FireInterrupt(JOYPAD_INTERRUPT)
+	} else if keyPress.Key == glfw.KeyRightControl || keyPress.Key == glfw.KeyRightShift || keyPress.Key == glfw.KeyBackspace || keyPress.Key == glfw.KeyEnter {
+		select {
+		case m.buttonKeyEvents <- keyPress:
+		default:
+		}
+		m.FireInterrupt(JOYPAD_INTERRUPT)
+	}
 }
 
 func createColorMapping() map[int]RGBPixel {
@@ -467,32 +475,62 @@ func (m *mmu) startDMA(value uint8) {
 }
 
 func (m *mmu) ReadJoypadInput(value uint8) uint8 {
+	var output uint8 = 0xCF
 	if GetBit(value, 4) == 0 { // Get direction key inputs
-		select {
-		case key := <-m.keyEvents:
-			if key == glfw.KeyDown {
-				return 0xEF
-			} else if key == glfw.KeyUp {
-				return 0xEF
-			} else if key == glfw.KeyLeft {
-				return 0xEF
-			} else if key == glfw.KeyRight {
-				return 0xEF
+		for {
+			select {
+			case keyPress := <-m.directionKeyEvents:
+				if keyPress.Action == glfw.Release {
+					output = 0xCF
+				} else if keyPress.Action == glfw.Press {
+					if keyPress.Key == glfw.KeyDown {
+						output = 0xC7
+					} else if keyPress.Key == glfw.KeyUp {
+						output = 0xCB
+					} else if keyPress.Key == glfw.KeyLeft {
+						output = 0xCD
+					} else if keyPress.Key == glfw.KeyRight {
+						output = 0xCE
+					} else {
+						output = 0xCF
+					}
+				}
+			default:
+				fmt.Println(output)
+				return output
 			}
-			return 0
-		default:
-			break
+			// bit 3 - down
+			// bit 2 - up
+			// bit 1 - left
+			// bit 0 - right
 		}
-		// bit 3 - down
-		// bit 2 - up
-		// bit 1 - left
-		// bit 0 - right
-		return 0xEF
 	} else { // Get button keys input
-		// bit 3 - start
-		// bit 2 - select
-		// bit 1 - B
-		// bit 0 - A
-		return 0xDF
+		for {
+			select {
+			case keyPress := <-m.buttonKeyEvents:
+				if keyPress.Action == glfw.Release {
+					output = 0xCF
+				} else if keyPress.Action == glfw.Press {
+					if keyPress.Key == glfw.KeyRightControl {
+						output = 0xC7
+					} else if keyPress.Key == glfw.KeyRightShift {
+						output = 0xCB
+					} else if keyPress.Key == glfw.KeyBackspace {
+						output = 0xCD
+					} else if keyPress.Key == glfw.KeyEnter {
+						output = 0xCE
+					} else {
+						output = 0xCF
+					}
+				}
+			default:
+				fmt.Println(output)
+				return output
+			}
+			// bit 3 - start
+			// bit 2 - select
+			// bit 1 - B
+			// bit 0 - A
+		}
 	}
 }
