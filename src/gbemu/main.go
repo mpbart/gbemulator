@@ -57,9 +57,7 @@ func loadROM(m MMU) error {
 		return fmt.Errorf("ERROR opening ROM: %s", err)
 	}
 
-	for i := 0; i < len(f); i++ {
-		m.WriteByte(uint16(i), f[i])
-	}
+	m.InitRom(f)
 
 	// Setup displaying of Nintendo logo
 	lookupTable := []byte{

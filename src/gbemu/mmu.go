@@ -109,6 +109,7 @@ const (
 
 type MMU interface {
 	Reset()
+	InitRom([]byte)
 	ReadAt(uint16) uint8
 	WriteByte(uint16, uint8)
 	LCDStatusMode() uint8
@@ -193,6 +194,11 @@ func createBitToInterruptMap() map[int]uint16 {
 	return m
 }
 
+func (m *mmu) InitRom(rom []byte) {
+	for i := 0; i < len(rom); i++ {
+		m.ROM[uint16(i)] = rom[i]
+	}
+}
 func (m *mmu) Reset() {
 	// Initialize memory from values specified in manual
 	m.WriteByte(TIMER_REGISTER, 0x00)
@@ -255,7 +261,10 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 func (m *mmu) WriteByte(address uint16, value uint8) {
 	switch {
 	case address >= 0x0000 && address <= 0x7FFF:
-		m.ROM[address] = value
+		if address == 0x2000 {
+			fmt.Printf("WHAAAAAAAAAAAAAAAAAAAAT %x\n", value)
+		}
+		//m.ROM[address] = value
 	case address >= 0x8000 && address <= 0x9FFF:
 		/*
 			if !m.CanAccessVRAM() {
@@ -496,7 +505,6 @@ func (m *mmu) ReadJoypadInput(value uint8) uint8 {
 					}
 				}
 			default:
-				fmt.Println(output)
 				return output
 			}
 			// bit 3 - down
@@ -524,7 +532,6 @@ func (m *mmu) ReadJoypadInput(value uint8) uint8 {
 					}
 				}
 			default:
-				fmt.Println(output)
 				return output
 			}
 			// bit 3 - start
