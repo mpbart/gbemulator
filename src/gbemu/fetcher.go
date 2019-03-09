@@ -108,6 +108,14 @@ func (f *fetcher) readTile(currentLine int) {
 	if f.fetchMode == BG_FETCH {
 		yOffset, xOffset := uint16(currentLine>>3), uint16(f.currentPixel>>3)
 		f.currentTile = uint16(f.mmu.ReadAt(f.backgroundStartAddress + yOffset*32 + xOffset))
+	} else if f.fetchMode == WINDOW_FETCH {
+		y := currentLine - int(f.mmu.WindowYPosition())
+
+		xStart := int(f.mmu.WindowXPosition()) - 7
+		x := int(f.currentPixel) - xStart
+
+		yOffset, xOffset := uint16(y>>3), uint16(x>>3)
+		f.currentTile = uint16(f.mmu.ReadAt(f.windowStartAddress + yOffset*32 + xOffset))
 	} else if f.fetchMode == SPRITE_FETCH {
 		yOffset, xOffset := uint16(currentLine-f.oamEntry.GetYPosition()), uint16(int(f.currentPixel)-f.oamEntry.GetXPosition())
 
@@ -140,7 +148,7 @@ func (f *fetcher) readData(byteNum uint8, currentLine int) {
 
 func (f *fetcher) setPixels() {
 	for i := 0; i < len(f.pixels); i++ {
-		if f.fetchMode == BG_FETCH {
+		if f.fetchMode == BG_FETCH || f.fetchMode == WINDOW_FETCH {
 			f.pixels[i] = f.getBgColor(7 - i) // The leftmost pixel corresponds to bit 7
 		} else if f.fetchMode == SPRITE_FETCH {
 			f.pixels[i] = f.getSpriteColor(7 - i) // The leftmost pixel corresponds to bit 7
@@ -165,9 +173,4 @@ func (f *fetcher) canRun() bool {
 	oldValue := f.doAction
 	f.doAction = !f.doAction
 	return oldValue
-}
-
-// Use this to index based on fetching bg vs. sprite vs. window
-func (f *fetcher) tileBaseAddress() uint16 {
-	return 0
 }

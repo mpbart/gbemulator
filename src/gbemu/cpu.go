@@ -53,8 +53,8 @@ func CreateCPU(exitChannel chan bool, mmu MMU) CPU {
 		currentParams:         Parameters{},
 		getInput:              false,
 		interruptMasterEnable: false,
-		ticks:				   0,
-		breakAddresses:        []uint16{},
+		ticks:          0,
+		breakAddresses: []uint16{0x60},
 	}
 
 	cpu.instructions = CreateInstructions(registers, mmu, cpu)
@@ -118,7 +118,7 @@ func (c *cpu) Tick() {
 		interruptVector := c.mmu.GetNextPendingInterrupt()
 		c.mmu.ClearHighestInterrupt()
 		c.registers.PushSP(c.registers.ReadPC() + uint16(c.currentInstruction.GetNumParameterBytes()))
-		fmt.Printf("Pushing PC: %x\n", c.registers.ReadPC())
+		//fmt.Printf("Pushing PC: %x\n", c.registers.ReadPC())
 		c.registers.WritePC(interruptVector)
 		c.InstructionTicks = 12
 		c.interruptMasterEnable = false

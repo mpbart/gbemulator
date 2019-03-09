@@ -69,10 +69,14 @@ func (p *ppu) LineFinished() bool {
 	return p.lcdCurrentPixel == uint16(SCREEN_WIDTH)
 }
 
-// Will fail when sprite finishes fetching and ppu attempts to shift out next pixel because it will see the same
-// sprite and think it needs to re-fetch...
 func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
-	if !p.isUnfetchedSpritePixel(sprites) {
+	if p.isUnfetchedSpritePixel(sprites) {
+		return
+	} else if p.isUnfetchedWindowPixel(currentLine) {
+		// When starting a window fetch clear the entire FIFO and start refetching for window pixels
+		p.fifo = make([]RGBPixel, 0)
+		p.fetcher.Reset(uint16(p.lcdCurrentPixel), WINDOW_FETCH, nil)
+	} else {
 		if !p.mmu.BGDisplayEnabled() {
 			p.lcdBuffer[currentLine][p.lcdCurrentPixel] = WHITE() // When background is not enabled we should only draw blank pixels
 		} else {
@@ -86,7 +90,7 @@ func (p *ppu) shiftOutPixel(currentLine int, sprites []SpriteAttribute) {
 
 func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 	for _, sprite := range sprites {
-		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.lcdCurrentPixel) && !p.currentSpritePixelFetched || !p.mmu.SpritesEnabled() {
+		if sprite != nil && sprite.GetXPosition() > 0 && sprite.GetXPosition()-8 == int(p.lcdCurrentPixel) && !p.currentSpritePixelFetched && p.mmu.SpritesEnabled() {
 			p.fetcher.Reset(uint16(p.lcdCurrentPixel), SPRITE_FETCH, sprite)
 			p.currentFetchPixel = p.lcdCurrentPixel
 			p.fetchingSprite = true
@@ -99,6 +103,14 @@ func (p *ppu) isUnfetchedSpritePixel(sprites []SpriteAttribute) bool {
 		}
 	}
 	return false
+}
+
+func (p *ppu) isUnfetchedWindowPixel(currentLine int) bool {
+	if currentLine >= int(p.mmu.WindowYPosition()) && p.mmu.WindowDisplayEnabled() {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (p *ppu) shiftInPixels(pixels []RGBPixel, currentLine int) {

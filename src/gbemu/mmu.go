@@ -118,6 +118,8 @@ type MMU interface {
 	LCDEnabled() bool
 	WindowTileMap() uint16
 	WindowDisplayEnabled() bool
+	WindowXPosition() uint8
+	WindowYPosition() uint8
 	BGAndWindowAddressMode() AddressMode
 	BGTileMap() uint16
 	SpritesEnabled() bool
@@ -148,6 +150,7 @@ type mmu struct {
 	interruptMapping   map[int]uint16
 	directionKeyEvents chan KeyPress
 	buttonKeyEvents    chan KeyPress
+	lastKeyPress       uint8
 }
 
 func CreateMMU() MMU {
@@ -156,6 +159,7 @@ func CreateMMU() MMU {
 		interruptMapping:   createBitToInterruptMap(),
 		directionKeyEvents: make(chan KeyPress, 500),
 		buttonKeyEvents:    make(chan KeyPress, 500),
+		lastKeyPress:       0xEF,
 	}
 }
 
@@ -261,9 +265,7 @@ func (m *mmu) ReadAt(address uint16) uint8 {
 func (m *mmu) WriteByte(address uint16, value uint8) {
 	switch {
 	case address >= 0x0000 && address <= 0x7FFF:
-		if address == 0x2000 {
-			fmt.Printf("WHAAAAAAAAAAAAAAAAAAAAT %x\n", value)
-		}
+		fmt.Println(address)
 		//m.ROM[address] = value
 	case address >= 0x8000 && address <= 0x9FFF:
 		/*
@@ -349,6 +351,14 @@ func (m *mmu) WindowTileMap() uint16 {
 
 func (m *mmu) WindowDisplayEnabled() bool {
 	return GetBit(m.ReadAt(0xFF40), 5) == 1
+}
+
+func (m *mmu) WindowXPosition() uint8 {
+	return m.ReadAt(WINDOW_X_POSITION)
+}
+
+func (m *mmu) WindowYPosition() uint8 {
+	return m.ReadAt(WINDOW_Y_POSITION)
 }
 
 func (m *mmu) BGAndWindowAddressMode() AddressMode {
@@ -484,28 +494,30 @@ func (m *mmu) startDMA(value uint8) {
 }
 
 func (m *mmu) ReadJoypadInput(value uint8) uint8 {
-	var output uint8 = 0xCF
 	if GetBit(value, 4) == 0 { // Get direction key inputs
 		for {
 			select {
 			case keyPress := <-m.directionKeyEvents:
 				if keyPress.Action == glfw.Release {
-					output = 0xCF
+					m.lastKeyPress = 0xEF
 				} else if keyPress.Action == glfw.Press {
 					if keyPress.Key == glfw.KeyDown {
-						output = 0xC7
+						m.lastKeyPress = 0xE7
 					} else if keyPress.Key == glfw.KeyUp {
-						output = 0xCB
+						m.lastKeyPress = 0xEB
 					} else if keyPress.Key == glfw.KeyLeft {
-						output = 0xCD
+						m.lastKeyPress = 0xED
 					} else if keyPress.Key == glfw.KeyRight {
-						output = 0xCE
+						m.lastKeyPress = 0xEE
 					} else {
-						output = 0xCF
+						m.lastKeyPress = 0xEF
 					}
 				}
 			default:
-				return output
+				if m.lastKeyPress != 0xDF && m.lastKeyPress != 0xEF {
+					fmt.Printf("%x\n", m.lastKeyPress)
+				}
+				return m.lastKeyPress
 			}
 			// bit 3 - down
 			// bit 2 - up
@@ -517,22 +529,25 @@ func (m *mmu) ReadJoypadInput(value uint8) uint8 {
 			select {
 			case keyPress := <-m.buttonKeyEvents:
 				if keyPress.Action == glfw.Release {
-					output = 0xCF
+					m.lastKeyPress = 0xDF
 				} else if keyPress.Action == glfw.Press {
 					if keyPress.Key == glfw.KeyRightControl {
-						output = 0xC7
+						m.lastKeyPress = 0xD7
 					} else if keyPress.Key == glfw.KeyRightShift {
-						output = 0xCB
+						m.lastKeyPress = 0xDB
 					} else if keyPress.Key == glfw.KeyBackspace {
-						output = 0xCD
+						m.lastKeyPress = 0xDD
 					} else if keyPress.Key == glfw.KeyEnter {
-						output = 0xCE
+						m.lastKeyPress = 0xDE
 					} else {
-						output = 0xCF
+						m.lastKeyPress = 0xDF
 					}
 				}
 			default:
-				return output
+				if m.lastKeyPress != 0xDF && m.lastKeyPress != 0xEF {
+					fmt.Printf("%x\n", m.lastKeyPress)
+				}
+				return m.lastKeyPress
 			}
 			// bit 3 - start
 			// bit 2 - select
